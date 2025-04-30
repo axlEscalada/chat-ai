@@ -1,11 +1,3 @@
 {
-  "rewrites": [
-    { "source": "/health", "destination": "/api/server" },
-    { "source": "/debug", "destination": "/api/server" },
-    { "source": "/chats", "destination": "/api/server" },
-    { "source": "/chats/message", "destination": "/api/server" },
-    { "source": "/chats/:chatId", "destination": "/api/server" },
-    { "source": "/sessions/:sessionId/chats", "destination": "/api/server" },
-    { "source": "/api-debug", "destination": "/api/server" }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/server" }]
 }
