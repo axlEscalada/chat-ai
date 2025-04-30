@@ -11,11 +11,12 @@
     }
   ],
   "rewrites": [
-    { "source": "/chat", "destination": "backend/dist/server.js" },
-    { "source": "/chat/:path*", "destination": "backend/dist/server.js" },
-    { "source": "/conversations", "destination": "backend/dist/server.js" },
+    { "source": "/health", "destination": "backend/dist/server.js" },
+    { "source": "/chats", "destination": "backend/dist/server.js" },
+    { "source": "/chats/message", "destination": "backend/dist/server.js" },
+    { "source": "/chats/:chatId", "destination": "backend/dist/server.js" },
     {
-      "source": "/conversations/:path*",
+      "source": "/sessions/:sessionId/chats",
       "destination": "backend/dist/server.js"
     },
     { "source": "/(.*)", "destination": "frontend/build/$1" }
