@@ -11,7 +11,10 @@ export class ChatController {
         return
       }
 
-      const [chatId, response] = await chatService.createChat(sessionId, initialPrompt)
+      const [chatId, response] = await chatService.createChat(
+        sessionId,
+        initialPrompt,
+      )
 
       res.status(201).json({ chatId, response })
     } catch (error) {

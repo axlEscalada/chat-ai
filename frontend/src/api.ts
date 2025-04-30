@@ -246,7 +246,6 @@ export const getUserChats = async (): Promise<any[]> => {
     const chats = await safeJsonParse(response)
     console.log(`Retrieved ${chats.length} chats`)
 
-    // Log the actual chat IDs
     if (chats.length > 0) {
       console.log(
         "Chat IDs in getUserChats:",

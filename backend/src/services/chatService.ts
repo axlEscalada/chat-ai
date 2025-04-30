@@ -1,9 +1,11 @@
 import { firebaseRepository } from "../repositories/firebaseRepository"
 import { geminiService } from "./geminiLlmService"
-import { v4 as uuidv4 } from "uuid"
 
 export interface ChatService {
-  createChat(sessionId: string, initialPrompt?: string): Promise<[string, string]>
+  createChat(
+    sessionId: string,
+    initialPrompt?: string,
+  ): Promise<[string, string]>
   sendMessage(chatId: string, prompt: string): Promise<string>
   getChat(chatId: string): Promise<any>
   getUserChats(sessionId: string): Promise<any[]>
@@ -17,17 +19,18 @@ export class ChatServiceImpl implements ChatService {
     try {
       let response = ""
       let chatId: string
-      
+
       if (initialPrompt) {
         response = await geminiService.generateResponse(initialPrompt)
-        // Store the chat and GET BACK the actual document ID
-        chatId = await firebaseRepository.createChat(sessionId, initialPrompt, response)
+        chatId = await firebaseRepository.createChat(
+          sessionId,
+          initialPrompt,
+          response,
+        )
       } else {
-        // Store the chat and GET BACK the actual document ID
         chatId = await firebaseRepository.createChat(sessionId)
       }
 
-      // Return the ACTUAL Firebase document ID
       return [chatId, response]
     } catch (error) {
       console.error("Error creating chat:", error)
