@@ -10,14 +10,14 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
+  "rewrites": [
+    { "source": "/chat", "destination": "backend/dist/server.js" },
+    { "source": "/chat/:path*", "destination": "backend/dist/server.js" },
+    { "source": "/conversations", "destination": "backend/dist/server.js" },
     {
-      "src": "/(.*)",
-      "dest": "backend/dist/server.js"
+      "source": "/conversations/:path*",
+      "destination": "backend/dist/server.js"
     },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/build/$1"
-    }
+    { "source": "/(.*)", "destination": "frontend/build/$1" }
   ]
 }
