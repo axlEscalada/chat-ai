@@ -1,24 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "backend/dist/server.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "frontend/build/**",
-      "use": "@vercel/static"
-    }
-  ],
   "rewrites": [
-    { "source": "/health", "destination": "backend/dist/server.js" },
-    { "source": "/chats", "destination": "backend/dist/server.js" },
-    { "source": "/chats/message", "destination": "backend/dist/server.js" },
-    { "source": "/chats/:chatId", "destination": "backend/dist/server.js" },
-    {
-      "source": "/sessions/:sessionId/chats",
-      "destination": "backend/dist/server.js"
-    },
-    { "source": "/(.*)", "destination": "frontend/build/$1" }
+    { "source": "/health", "destination": "/api/server" },
+    { "source": "/chats", "destination": "/api/server" },
+    { "source": "/chats/message", "destination": "/api/server" },
+    { "source": "/chats/:chatId", "destination": "/api/server" },
+    { "source": "/sessions/:sessionId/chats", "destination": "/api/server" }
   ]
 }
