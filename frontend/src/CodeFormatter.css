@@ -1,0 +1,179 @@
+.formatted-message {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.text-content {
+  width: 100%;
+}
+
+.text-paragraph {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.text-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.code-block-container {
+  margin: 8px 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #282c34; /* VSCode-like dark theme */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #21252b; /* Slightly darker than code background */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.code-language {
+  text-transform: uppercase;
+  color: #a0a0a0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.copy-button {
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.copy-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.copy-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.language-wrapper {
+  margin: 0;
+  padding: 12px 16px;
+  overflow-x: auto;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  background-color: transparent;
+  border-radius: 0;
+  padding: 0;
+  color: inherit;
+}
+
+:not(pre) > code {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: #e6e6e6;
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #636f88;
+}
+
+.token.punctuation {
+  color: #a0a0a0;
+}
+
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #e2777a;
+}
+
+.token.boolean,
+.token.number {
+  color: #f08d49;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #7ec699;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string,
+.token.variable {
+  color: #67cdcc;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.function,
+.token.class-name {
+  color: #e6c07b;
+}
+
+.token.keyword {
+  color: #cc99cd;
+}
+
+.token.regex,
+.token.important {
+  color: #f08d49;
+}
+
+.token.important,
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.line-numbers .line-numbers-rows {
+  border-right-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 600px) {
+  .language-wrapper {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+  
+  .code-header {
+    padding: 6px 10px;
+  }
+}
