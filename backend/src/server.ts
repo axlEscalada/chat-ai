@@ -5,18 +5,15 @@ import { GeminiLlmService } from "./services/geminiLlmService"
 import { PromptService } from "./services/promptService"
 import apiRoutes from "./routes/routes"
 
-const llmService = new GeminiLlmService()
-const promptService = new PromptService(llmService)
-
 dotenv.config()
 
+const llmService = new GeminiLlmService()
+
 const app = express()
-const port = 3001
+
 const corsOptions = {
   origin:
-    process.env.NODE_ENV === "production"
-      ? "https://chat-ai.vercel.app"
-      : "http://localhost:3000",
+    process.env.NODE_ENV === "production" ? true : "http://localhost:3000",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -29,9 +26,27 @@ app.use(cors(corsOptions))
 app.use(apiRoutes)
 
 app.get("/health", (_, res) => {
-  res.send("Welcome to the AI API")
+  res.json({ status: "ok", message: "Welcome to the AI API" })
 })
 
-app.listen(port, () => {
-  console.log(`AI API server listening on port ${port}`)
+app.get("/debug", (req, res) => {
+  res.json({
+    message: "Debug endpoint is working",
+    method: req.method,
+    path: req.path,
+    url: req.url,
+    headers: req.headers,
+    env: process.env.NODE_ENV || "development",
+  })
 })
+
+if (process.env.NODE_ENV !== "production") {
+  const port = process.env.PORT || 3001
+  app.listen(port, () => {
+    console.log(`AI API server listening on port ${port}`)
+  })
+} else {
+  console.log("Running in production mode - no server started (serverless)")
+}
+
+export default app
