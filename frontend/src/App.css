@@ -20,8 +20,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   background-color: var(--bg-color);
   color: var(--text-color);
   height: 100vh;
@@ -31,13 +32,137 @@ body {
 
 .app {
   display: flex;
-  flex-direction: column;
   height: 100vh;
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0;
   position: relative;
+}
+
+/* Chat Sidebar */
+.chat-sidebar {
+  width: 280px;
+  background-color: var(--surface-color);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  transition: transform 0.3s ease;
+  /* Hidden by default on all devices */
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  box-shadow: var(--box-shadow);
+}
+
+.chat-sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.close-sidebar {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-color);
+  display: block;
+}
+
+.new-chat-button {
+  margin: 16px;
+  padding: 10px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-speed);
+}
+
+.new-chat-button:hover {
+  background-color: var(--primary-light);
+}
+
+.chat-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) var(--surface-color);
+}
+
+.chat-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-list::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+}
+
+.chat-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all var(--transition-speed);
+}
+
+.chat-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.chat-item.active {
+  background-color: rgba(114, 137, 218, 0.2);
+  border-left: 3px solid var(--primary-color);
+}
+
+.chat-item-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-item-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.no-chats {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* Chat Main */
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-color);
 }
 
 .header {
@@ -47,7 +172,17 @@ body {
   padding: 16px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   background-color: var(--bg-color);
-  z-index: 2; /* Lower z-index than the input form */
+  z-index: 2;
+}
+
+.menu-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  margin-right: 16px;
+  cursor: pointer;
+  color: var(--text-color);
+  display: block;
 }
 
 .title-area {
@@ -133,8 +268,8 @@ body {
   gap: 16px;
   scrollbar-width: thin;
   scrollbar-color: var(--primary-color) var(--bg-color);
-  position: relative; /* Added for better stacking context */
-  z-index: 1; /* Lower z-index than the input form */
+  position: relative;
+  z-index: 1;
 }
 
 .messages::-webkit-scrollbar {
@@ -242,7 +377,7 @@ body {
   color: var(--text-secondary);
 }
 
-.loading {
+.message-content.loading {
   min-width: 60px;
   min-height: 32px;
   display: flex;
@@ -285,7 +420,7 @@ body {
   font-size: 0.9rem;
   border: 1px solid rgba(240, 71, 71, 0.3);
   position: relative;
-  z-index: 3; /* Higher z-index */
+  z-index: 3;
 }
 
 .error-message button {
@@ -303,20 +438,19 @@ body {
   background-color: rgba(240, 71, 71, 0.1);
 }
 
-/* New input form styling */
 .input-form {
   display: flex;
   padding: 16px 24px;
   background-color: var(--bg-color);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
-  z-index: 10; /* Higher z-index to ensure clickability */
+  z-index: 10;
 }
 
 .input-container {
   flex: 1;
   position: relative;
-  cursor: text; /* Show text cursor */
+  cursor: text;
 }
 
 .input-form input {
@@ -330,7 +464,7 @@ body {
   outline: none;
   transition: all var(--transition-speed);
   position: relative;
-  z-index: 1; /* Ensure input is above any potential overlays */
+  z-index: 1;
 }
 
 .input-form input:focus {
@@ -356,7 +490,7 @@ body {
   cursor: pointer;
   transition: all var(--transition-speed);
   position: relative;
-  z-index: 10; /* Ensure button is clickable */
+  z-index: 10;
 }
 
 .input-form button svg {
@@ -364,13 +498,28 @@ body {
   height: 20px;
 }
 
-.input-form button:hover {
+.input-form button:hover:not(:disabled) {
   background-color: var(--primary-light);
 }
 
 .input-form button:disabled {
   background-color: rgba(114, 137, 218, 0.4);
   cursor: not-allowed;
+}
+
+/* Desktop view adjustments */
+@media (min-width: 992px) {
+  /* Optionally, make the sidebar fixed instead of absolutely positioned on larger screens */
+  .chat-sidebar {
+    position: fixed;
+    height: 100vh;
+  }
+
+  /* Add margin to the main content to account for the sidebar width when open */
+  .chat-sidebar.open + .chat-main {
+    margin-left: 280px;
+    transition: margin-left 0.3s ease;
+  }
 }
 
 /* Fix for iOS input issues */
@@ -381,10 +530,12 @@ body {
 }
 
 @keyframes bounce {
-  0%, 80%, 100% { 
+  0%,
+  80%,
+  100% {
     transform: translateY(0);
   }
-  40% { 
+  40% {
     transform: translateY(-6px);
   }
 }
@@ -417,19 +568,19 @@ body {
   .header {
     padding: 12px 16px;
   }
-  
+
   .title-area h1 {
     font-size: 1.2rem;
   }
-  
+
   .messages {
     padding: 16px;
   }
-  
+
   .message-content {
     max-width: 85%;
   }
-  
+
   .input-form {
     padding: 12px 16px;
   }
