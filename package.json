@@ -17,6 +17,7 @@
     "start:frontend": "npm run start --workspace=frontend"
   },
   "devDependencies": {
+    "@types/uuid": "^10.0.0",
     "concurrently": "^8.2.2"
   }
 }

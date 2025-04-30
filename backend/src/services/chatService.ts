@@ -15,16 +15,19 @@ export class ChatServiceImpl implements ChatService {
     initialPrompt?: string,
   ): Promise<[string, string]> {
     try {
-      let chatId = uuidv4()
-
       let response = ""
+      let chatId: string
+      
       if (initialPrompt) {
         response = await geminiService.generateResponse(initialPrompt)
-        await firebaseRepository.createChat(sessionId, initialPrompt, response)
+        // Store the chat and GET BACK the actual document ID
+        chatId = await firebaseRepository.createChat(sessionId, initialPrompt, response)
       } else {
-        await firebaseRepository.createChat(sessionId)
+        // Store the chat and GET BACK the actual document ID
+        chatId = await firebaseRepository.createChat(sessionId)
       }
 
+      // Return the ACTUAL Firebase document ID
       return [chatId, response]
     } catch (error) {
       console.error("Error creating chat:", error)

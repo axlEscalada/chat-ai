@@ -1,13 +1,6 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  FormEvent,
-} from "react"
+import { useState, useRef, useEffect, useCallback, FormEvent } from "react"
 import {
   sendMessage,
-  loadMessageHistory,
   clearMessageHistory,
   checkServerHealth,
   createChat,
@@ -37,24 +30,39 @@ interface ApiResponse {
 
 function App() {
   const [input, setInput] = useState<string>("")
-  const [messages, setMessages] = useState<Message[]>(() =>
-    loadMessageHistory(),
-  )
+  const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [backendStatus, setBackendStatus] = useState<
     "checking" | "connected" | "disconnected"
   >("checking")
   const [chats, setChats] = useState<Chat[]>([])
-  const [activeChatId, setActiveChatId] = useState<string | null>(
-    localStorage.getItem("activeChatId"),
-  )
+  
+  // Initialize activeChatId from localStorage, but after this point
+  // we'll manage it purely through React state
+  const [activeChatId, setActiveChatId] = useState<string | null>(() => {
+    // Only do this once on initial render
+    const savedChatId = localStorage.getItem("activeChatId");
+    console.log("Initial activeChatId from localStorage:", savedChatId);
+    return savedChatId;
+  })
+  
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  
+  // Whenever activeChatId changes, update localStorage
+  useEffect(() => {
+    console.log("activeChatId changed to:", activeChatId);
+    if (activeChatId) {
+      localStorage.setItem("activeChatId", activeChatId)
+    } else {
+      localStorage.removeItem("activeChatId")
+    }
+  }, [activeChatId])
 
-  // Check backend connection
+  // Check backend connection on mount
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -62,7 +70,17 @@ function App() {
         setBackendStatus(isConnected ? "connected" : "disconnected")
 
         if (isConnected) {
-          loadUserChats()
+          await loadUserChats()
+          
+          // If we have an active chat ID, try to load its messages
+          if (activeChatId) {
+            try {
+              await loadActiveChatMessages(activeChatId)
+            } catch (err) {
+              console.error("Failed to load initial chat messages, clearing activeChatId")
+              setActiveChatId(null)
+            }
+          }
         }
       } catch (error) {
         setBackendStatus("disconnected")
@@ -71,32 +89,14 @@ function App() {
     }
 
     checkConnection()
-  }, [])
+  }, []) // Only run on initial mount
 
-  useEffect(() => {
-    if (activeChatId) {
-      loadActiveChatMessages()
-    } else {
-      setMessages([])
-    }
-  }, [activeChatId])
-
-  useEffect(() => {
-    if (activeChatId) {
-      localStorage.setItem("activeChatId", activeChatId)
-    }
-  }, [activeChatId])
-
-  useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem("chatMessages", JSON.stringify(messages))
-    }
-  }, [messages])
-
+  // Scroll to bottom whenever messages change
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
+  // Focus input on mount
   useEffect(() => {
     const timer = setTimeout(() => {
       if (inputRef.current) {
@@ -115,18 +115,28 @@ function App() {
     try {
       const userChats = await getUserChats()
       setChats(userChats)
+      
+      // Validate that our active chat ID exists in the returned chats
+      if (activeChatId && userChats.length > 0) {
+        const chatExists = userChats.some(chat => chat.id === activeChatId)
+        if (!chatExists) {
+          console.warn(`Active chat ID ${activeChatId} not found in user chats, resetting.`)
+          setActiveChatId(null)
+        }
+      }
+      
+      return userChats
     } catch (error) {
       console.error("Error loading chats:", error)
+      return []
     }
   }
 
-  const loadActiveChatMessages = async () => {
-    if (!activeChatId) return
-
+  const loadActiveChatMessages = async (chatId: string) => {
+    console.log(`Loading messages for chat: ${chatId}`)
     try {
-      const chatData = await getChat(activeChatId)
+      const chatData = await getChat(chatId)
 
-      // Convert chat messages to app format
       if (chatData && chatData.messages) {
         const formattedMessages = chatData.messages.map((msg: any) => ({
           text: msg.content,
@@ -136,9 +146,11 @@ function App() {
 
         setMessages(formattedMessages)
       }
+      return true
     } catch (error) {
-      console.error("Error loading chat messages:", error)
+      console.error(`Error loading chat messages for ${chatId}:`, error)
       setError({ message: "Failed to load chat messages" })
+      throw error
     }
   }
 
@@ -149,6 +161,7 @@ function App() {
 
     setError(null)
 
+    // Always add the user message to the UI immediately
     const userMessage: Message = {
       text: input,
       sender: "user",
@@ -156,43 +169,62 @@ function App() {
     }
     setMessages((prevMessages) => [...prevMessages, userMessage])
     setIsLoading(true)
+    
+    const currentInput = input
     setInput("")
 
     try {
-      let response: ApiResponse
-
       if (!activeChatId) {
-        const newChatData = await createChat(input)
+        // Create a new chat
+        console.log("Creating a new chat with message:", currentInput.substring(0, 30))
+        const newChatData = await createChat(currentInput)
+        
+        // Validate that we got a chat ID back
+        if (!newChatData.chatId) {
+          throw new Error("Server did not return a valid chat ID")
+        }
+        
+        console.log("New chat created with ID:", newChatData.chatId)
+        
+        // Set the new chat ID in state
         setActiveChatId(newChatData.chatId)
-        response = { response: newChatData.response || "" }
-
-        loadUserChats()
+        
+        // Add AI response directly to messages
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            text: newChatData.response || "I received your message, but couldn't formulate a response.",
+            sender: "ai",
+            timestamp: new Date().toISOString(),
+          },
+        ])
+        
+        // Update chat list
+        await loadUserChats()
       } else {
-        response = await sendMessage(input)
+        // Using existing chat
+        console.log(`Sending message to existing chat ${activeChatId}:`, currentInput.substring(0, 30))
+        const response = await sendMessage(currentInput, activeChatId)
+        
+        // Add AI response to messages
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            text: response.response || "I received your message, but couldn't formulate a response.",
+            sender: "ai",
+            timestamp: new Date().toISOString(),
+          },
+        ])
       }
-
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          text:
-            response.response ||
-            "I received your message, but couldn't formulate a response.",
-          sender: "ai",
-          timestamp: new Date().toISOString(),
-        },
-      ])
     } catch (error) {
-      console.error("Error:", error)
-      const errorMessage =
-        error instanceof Error ? error.message : "Something went wrong"
+      console.error("Error in handleSubmit:", error)
+      const errorMessage = error instanceof Error ? error.message : "Something went wrong"
       setError({ message: errorMessage })
 
       setMessages((prevMessages) => [
         ...prevMessages,
         {
-          text:
-            "Sorry, there was an error processing your request: " +
-            errorMessage,
+          text: "Sorry, there was an error processing your request: " + errorMessage,
           sender: "system",
           timestamp: new Date().toISOString(),
           isError: true,
@@ -208,10 +240,10 @@ function App() {
     }
   }
 
-  const handleNewChat = async () => {
+  const handleNewChat = () => {
+    console.log("Starting new chat")
     setActiveChatId(null)
     setMessages([])
-    localStorage.removeItem("activeChatId")
     setIsChatSidebarOpen(false)
 
     if (inputRef.current) {
@@ -219,9 +251,24 @@ function App() {
     }
   }
 
-  const handleSelectChat = (chatId: string) => {
-    setActiveChatId(chatId)
-    setIsChatSidebarOpen(false)
+  const handleSelectChat = async (chatId: string) => {
+    console.log("Selecting chat:", chatId)
+    
+    // First clear messages and show loading state
+    setMessages([])
+    setIsLoading(true)
+    
+    try {
+      // Load messages for this chat before updating active chat ID
+      await loadActiveChatMessages(chatId)
+      setActiveChatId(chatId)
+    } catch (error) {
+      console.error(`Failed to load messages for chat ${chatId}:`, error)
+      setError({ message: "Could not load selected chat" })
+    } finally {
+      setIsLoading(false)
+      setIsChatSidebarOpen(false)
+    }
   }
 
   const handleInputClick = () => {
@@ -286,7 +333,6 @@ function App() {
         </div>
       </div>
 
-      {/* Main chat area */}
       <div className="chat-main">
         <div className="header">
           <div className="title-area">
@@ -311,7 +357,7 @@ function App() {
         </div>
 
         <div className="messages">
-          {messages.length === 0 && (
+          {messages.length === 0 && !isLoading && (
             <div className="welcome-message">
               <div className="welcome-icon">✨</div>
               <h2>How can I help you today?</h2>
