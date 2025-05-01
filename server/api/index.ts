@@ -9,10 +9,10 @@ dotenv.config()
 const app = express()
 const port = 5000
 const corsOptions = {
-  origin: "*",
-  // process.env.NODE_ENV === "production"
-  //   ? ["https://chat-ai-frontend-amber.vercel.app"]
-  //   : "http://localhost:3000",
+  origin:
+    process.env.NODE_ENV === "production"
+      ? ["https://chat-ai-frontend-amber.vercel.app"]
+      : "http://localhost:3000",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
