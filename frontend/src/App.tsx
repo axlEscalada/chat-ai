@@ -1,15 +1,7 @@
 import { useState, useCallback, FormEvent, useEffect } from "react"
-import {
-  useParams,
-  useNavigate,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom"
+import { useParams, useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { sendMessage, checkServerHealth, createChat, LlmResponse } from "./api"
 import { ChatManager, Chat, Message } from "./components/ChatManager"
-
-// Imported components
 import MessageList from "./components/chat/MessageList"
 import MessageForm from "./components/chat/MessageForm"
 import ChatSidebar from "./components/chat/ChatSidebar"
@@ -22,114 +14,130 @@ interface ApiError {
   shownInChat?: boolean
 }
 
-const ChatInterface = () => {
-  const { chatId } = useParams<{ chatId?: string }>()
-  const navigate = useNavigate()
+function App() {
+  const location = useLocation();
+  
+  return (
+    <Routes>
+      <Route 
+        path="/" 
+        element={<ChatInterface key={`new-chat-${location.key}`} isNewChat={true} />} 
+      />
+      
+      <Route 
+        path="/chat/:chatId" 
+        element={<ChatInterface key={`chat-${location.key}`} isNewChat={false} />} 
+      />
+      
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
 
-  const [input, setInput] = useState<string>("")
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [error, setError] = useState<ApiError | null>(null)
+const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
+  const { chatId } = useParams<{ chatId?: string }>();
+  const navigate = useNavigate();
+  
+  const [input, setInput] = useState<string>("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<ApiError | null>(null);
   const [backendStatus, setBackendStatus] = useState<
     "checking" | "connected" | "disconnected"
-  >("checking")
-  const [chats, setChats] = useState<Chat[]>([])
-
-  const [activeChatId, setActiveChatId] = useState<string | null>(
-    chatId || null,
-  )
-  const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(false)
-
-  // Update activeChatId when URL changes
-  useEffect(() => {
-    if (chatId && chatId !== activeChatId) {
-      console.log("URL chatId changed to:", chatId)
-      setActiveChatId(chatId)
+  >("checking");
+  const [chats, setChats] = useState<Chat[]>([]);
+  
+  const [activeChatId, setActiveChatId] = useState<string | null>(() => {
+    if (isNewChat) {
+      console.log("NEW CHAT ROUTE - clearing localStorage");
+      localStorage.removeItem("activeChatId");
+      return null;
     }
-  }, [chatId, activeChatId])
-
-  // Update URL when activeChatId changes
-  useEffect(() => {
-    if (activeChatId && activeChatId !== chatId) {
-      console.log("Updating URL to chat ID:", activeChatId)
-      navigate(`/chat/${activeChatId}`, { replace: true })
+    
+    if (chatId) {
+      console.log("CHAT ROUTE - using chatId from URL:", chatId);
+      return chatId;
     }
-  }, [activeChatId, chatId, navigate])
+    
+    return null;
+  });
+  
+  const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(false);
 
-  // Effect to persist activeChatId to localStorage
   useEffect(() => {
-    console.log("activeChatId changed to:", activeChatId)
+    console.log("activeChatId changed to:", activeChatId);
     if (activeChatId) {
-      localStorage.setItem("activeChatId", activeChatId)
-    } else {
-      localStorage.removeItem("activeChatId")
+      localStorage.setItem("activeChatId", activeChatId);
+    } else if (!isNewChat) {
+      localStorage.removeItem("activeChatId");
     }
-  }, [activeChatId])
+  }, [activeChatId, isNewChat]);
 
   // Effect to check backend connection status
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        const isConnected = await checkServerHealth()
-        setBackendStatus(isConnected ? "connected" : "disconnected")
+        const isConnected = await checkServerHealth();
+        setBackendStatus(isConnected ? "connected" : "disconnected");
       } catch (error) {
-        setBackendStatus("disconnected")
-        console.error("Backend connection error:", error)
+        setBackendStatus("disconnected");
+        console.error("Backend connection error:", error);
       }
-    }
-
-    checkConnection()
-  }, [])
+    };
+    
+    checkConnection();
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!input.trim()) return
+    if (!input.trim()) return;
 
-    setError(null)
+    setError(null);
 
     const userMessage: Message = {
       text: input,
       sender: "user",
       tokenSize: "calculating...",
       timestamp: new Date().toISOString(),
-    }
-    setMessages((prevMessages) => [...prevMessages, userMessage])
-    setIsLoading(true)
+    };
+    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    setIsLoading(true);
 
-    const currentInput = input
-    setInput("")
+    const currentInput = input;
+    setInput("");
 
     try {
       if (!activeChatId) {
         console.log(
           "Creating a new chat with message:",
           currentInput.substring(0, 30),
-        )
-        const newChatData = await createChat(currentInput)
+        );
+        const newChatData = await createChat(currentInput);
 
         if (!newChatData.chatId) {
-          throw new Error("Server did not return a valid chat ID")
+          throw new Error("Server did not return a valid chat ID");
         }
 
-        console.log("New chat created with ID:", newChatData.chatId)
-
-        // Set active chat ID and update URL
-        setActiveChatId(newChatData.chatId)
+        console.log("New chat created with ID:", newChatData.chatId);
+        
+        setActiveChatId(newChatData.chatId);
+        
+        navigate(`/chat/${newChatData.chatId}`, { replace: true });
 
         const llmResponse: LlmResponse = newChatData.response || {
           text: "I received your message, but couldn't formulate a response.",
-        }
+        };
 
         const promptTokenSize = llmResponse.promptTokenSize
           ? String(llmResponse.promptTokenSize)
-          : "?"
+          : "?";
         const responseTokenSize = llmResponse.responseTokenSize
           ? String(llmResponse.responseTokenSize)
-          : "?"
+          : "?";
 
         setMessages((prevMessages) => {
-          const updatedMessages = [...prevMessages]
+          const updatedMessages = [...prevMessages];
 
           if (updatedMessages.length > 0) {
             for (let i = updatedMessages.length - 1; i >= 0; i--) {
@@ -137,8 +145,8 @@ const ChatInterface = () => {
                 updatedMessages[i] = {
                   ...updatedMessages[i],
                   tokenSize: promptTokenSize,
-                }
-                break
+                };
+                break;
               }
             }
           }
@@ -151,14 +159,14 @@ const ChatInterface = () => {
               sender: "ai",
               timestamp: new Date().toISOString(),
             },
-          ]
-        })
+          ];
+        });
       } else {
         console.log(
           `Sending message to existing chat ${activeChatId}:`,
           currentInput.substring(0, 30),
-        )
-        const response = await sendMessage(currentInput, activeChatId)
+        );
+        const response = await sendMessage(currentInput, activeChatId);
 
         const llmResponse: LlmResponse =
           typeof response.response === "object"
@@ -167,17 +175,17 @@ const ChatInterface = () => {
                 text:
                   response.response ||
                   "I received your message, but couldn't formulate a response.",
-              }
+              };
 
         const promptTokenSize = llmResponse.promptTokenSize
           ? String(llmResponse.promptTokenSize)
-          : "?"
+          : "?";
         const responseTokenSize = llmResponse.responseTokenSize
           ? String(llmResponse.responseTokenSize)
-          : "?"
+          : "?";
 
         setMessages((prevMessages) => {
-          const updatedMessages = [...prevMessages]
+          const updatedMessages = [...prevMessages];
 
           if (updatedMessages.length > 0) {
             for (let i = updatedMessages.length - 1; i >= 0; i--) {
@@ -185,8 +193,8 @@ const ChatInterface = () => {
                 updatedMessages[i] = {
                   ...updatedMessages[i],
                   tokenSize: promptTokenSize,
-                }
-                break
+                };
+                break;
               }
             }
           }
@@ -199,17 +207,17 @@ const ChatInterface = () => {
               sender: "ai",
               timestamp: new Date().toISOString(),
             },
-          ]
-        })
+          ];
+        });
       }
     } catch (error) {
-      console.error("Error in handleSubmit:", error)
+      console.error("Error in handleSubmit:", error);
       const errorMessage =
-        error instanceof Error ? error.message : "Something went wrong"
-      setError({ message: errorMessage })
+        error instanceof Error ? error.message : "Something went wrong";
+      setError({ message: errorMessage });
 
       setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages]
+        const updatedMessages = [...prevMessages];
 
         if (updatedMessages.length > 0) {
           for (let i = updatedMessages.length - 1; i >= 0; i--) {
@@ -217,8 +225,8 @@ const ChatInterface = () => {
               updatedMessages[i] = {
                 ...updatedMessages[i],
                 tokenSize: "?",
-              }
-              break
+              };
+              break;
             }
           }
         }
@@ -234,55 +242,49 @@ const ChatInterface = () => {
             timestamp: new Date().toISOString(),
             isError: true,
           },
-        ]
-      })
+        ];
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleNewChat = () => {
-    console.log("Starting new chat")
-    setActiveChatId(null)
-    setMessages([])
-    setIsChatSidebarOpen(false)
+  const handleNewChat = useCallback(() => {
+    console.log("Starting new chat - using hard navigation");
+    
+    navigate('/', { replace: true });
+    
+  }, [navigate]);
 
-    navigate("/")
-  }
-
-  const handleSelectChat = (chatId: string) => {
-    console.log("Selecting chat:", chatId)
-    setActiveChatId(chatId)
-    setIsChatSidebarOpen(false)
-
-    navigate(`/chat/${chatId}`)
-  }
+  const handleSelectChat = useCallback((chatId: string) => {
+    console.log("Selecting chat:", chatId);
+    navigate(`/chat/${chatId}`, { replace: true });
+  }, [navigate]);
 
   const handleChatsLoaded = useCallback(
     (loadedChats: Chat[]) => {
-      setChats(loadedChats)
+      setChats(loadedChats);
 
       if (activeChatId && loadedChats.length > 0) {
-        const chatExists = loadedChats.some((chat) => chat.id === activeChatId)
+        const chatExists = loadedChats.some((chat) => chat.id === activeChatId);
         if (!chatExists) {
           console.warn(
             `Active chat ID ${activeChatId} not found in user chats, resetting.`,
-          )
-          setActiveChatId(null)
-          navigate("/")
+          );
+          navigate('/', { replace: true });
         }
       }
     },
     [activeChatId, navigate],
-  )
+  );
 
   const handleChatMessagesLoaded = useCallback((loadedMessages: Message[]) => {
-    setMessages(loadedMessages)
-  }, [])
+    setMessages(loadedMessages);
+  }, []);
 
   const toggleSidebar = () => {
-    setIsChatSidebarOpen(!isChatSidebarOpen)
-  }
+    setIsChatSidebarOpen(!isChatSidebarOpen);
+  };
 
   return (
     <div className="app">
@@ -291,6 +293,7 @@ const ChatInterface = () => {
         onChatsLoaded={handleChatsLoaded}
         onChatMessagesLoaded={handleChatMessagesLoaded}
         onError={setError}
+        isNewChat={isNewChat}
       />
 
       <ChatSidebar
@@ -303,12 +306,18 @@ const ChatInterface = () => {
       />
 
       <div className="chat-main">
-        <Header onMenuClick={toggleSidebar} backendStatus={backendStatus} />
+        <Header 
+          onMenuClick={toggleSidebar}
+          backendStatus={backendStatus}
+        />
 
-        <MessageList messages={messages} isLoading={isLoading} />
+        <MessageList 
+          messages={messages}
+          isLoading={isLoading}
+        />
 
         {error && (
-          <ErrorMessage
+          <ErrorMessage 
             message={error.message}
             onDismiss={() => setError(null)}
           />
@@ -323,19 +332,7 @@ const ChatInterface = () => {
         />
       </div>
     </div>
-  )
-}
+  );
+};
 
-function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<ChatInterface />} />
-
-      <Route path="/chat/:chatId" element={<ChatInterface />} />
-
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  )
-}
-
-export default App
+export default App;

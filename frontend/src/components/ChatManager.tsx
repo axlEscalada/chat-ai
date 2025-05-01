@@ -13,7 +13,6 @@ interface Message {
   sender: string
   timestamp: string
   isError?: boolean
-  timeDisplay?: string
 }
 
 interface ChatManagerProps {
@@ -21,6 +20,7 @@ interface ChatManagerProps {
   onChatsLoaded: (chats: Chat[]) => void
   onChatMessagesLoaded: (messages: Message[]) => void
   onError: (error: { message: string }) => void
+  isNewChat?: boolean
 }
 
 const ChatManager = ({
@@ -28,18 +28,10 @@ const ChatManager = ({
   onChatsLoaded,
   onChatMessagesLoaded,
   onError,
+  isNewChat = false,
 }: ChatManagerProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(false)
-
-  const formatTime = (timestamp: string): string => {
-    if (!timestamp) return ""
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
-
-  const createTimeDisplay = (tokenSize: string, timestamp: string): string => {
-    return `tokens: ${tokenSize} | ${formatTime(timestamp)}`
-  }
+  const [lastLoadedChatId, setLastLoadedChatId] = useState<string | null>(null)
 
   const loadUserChats = useCallback(async () => {
     console.log("Loading user chats")
@@ -77,20 +69,15 @@ const ChatManager = ({
         const chatData = await getChat(chatId)
 
         if (chatData && chatData.messages) {
-          const formattedMessages = chatData.messages.map((msg: any) => {
-            const timestamp = new Date(msg.timestamp).toISOString()
-            const tokenSize = msg.tokenSize || "0"
-
-            return {
-              text: msg.content,
-              tokenSize: tokenSize,
-              sender: msg.type === "prompt" ? "user" : "ai",
-              timestamp: timestamp,
-              timeDisplay: createTimeDisplay(tokenSize, timestamp),
-            }
-          })
+          const formattedMessages = chatData.messages.map((msg: any) => ({
+            text: msg.content,
+            tokenSize: msg.tokenSize || "0",
+            sender: msg.type === "prompt" ? "user" : "ai",
+            timestamp: new Date(msg.timestamp).toISOString(),
+          }))
 
           onChatMessagesLoaded(formattedMessages)
+          setLastLoadedChatId(chatId)
         }
         return true
       } catch (error) {
@@ -109,12 +96,40 @@ const ChatManager = ({
   }, [loadUserChats])
 
   useEffect(() => {
-    if (activeChatId) {
-      loadChatMessages(activeChatId).catch((err) => {
-        console.error("Failed to load chat messages:", err)
-      })
+    if (isNewChat) {
+      console.log("ChatManager: In NEW CHAT mode, clearing messages")
+      onChatMessagesLoaded([])
+      setLastLoadedChatId(null)
+      return
     }
-  }, [activeChatId, loadChatMessages])
+
+    if (!activeChatId) {
+      console.log("ChatManager: activeChatId is null, not loading any chat")
+      return
+    }
+
+    if (activeChatId === lastLoadedChatId) {
+      console.log(`ChatManager: Chat ${activeChatId} already loaded, skipping`)
+      return
+    }
+
+    console.log(`ChatManager: Loading chat ${activeChatId}`)
+    loadChatMessages(activeChatId).catch((err) => {
+      console.error("Failed to load chat messages:", err)
+    })
+  }, [
+    activeChatId,
+    isNewChat,
+    lastLoadedChatId,
+    loadChatMessages,
+    onChatMessagesLoaded,
+  ])
+
+  const formatTime = (timestamp: string): string => {
+    if (!timestamp) return ""
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  }
 
   return null
 }
