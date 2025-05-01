@@ -1,7 +1,12 @@
-import { useState, useRef, useEffect, useCallback, FormEvent } from "react"
+import { useState, useCallback, FormEvent, useEffect } from "react"
 import { sendMessage, checkServerHealth, createChat, LlmResponse } from "./api"
-import CodeFormatter from "./CodeFormatter"
-import { ChatManager, Chat, Message } from "./ChatManager"
+import { ChatManager, Chat, Message } from "./components/ChatManager"
+
+import MessageList from "./components/MessageList"
+import MessageForm from "./components/MessageForm"
+import ChatSidebar from "./components/ChatSidebar"
+import Header from "./components/Header"
+import ErrorMessage from "./components/ErrorMessage"
 import "./App.css"
 
 interface ApiError {
@@ -27,9 +32,6 @@ function App() {
 
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(false)
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
   useEffect(() => {
     console.log("activeChatId changed to:", activeChatId)
     if (activeChatId) {
@@ -53,31 +55,6 @@ function App() {
     checkConnection()
   }, [])
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus()
-      }
-    }, 100)
-
-    return () => clearTimeout(timer)
-  }, [])
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  // Format time for display in "tokens: <number> | <time>" format
-  const formatTime = (timestamp: string): string => {
-    if (!timestamp) return ""
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
@@ -88,7 +65,7 @@ function App() {
     const userMessage: Message = {
       text: input,
       sender: "user",
-      tokenSize: "calculating...", // Placeholder until we get the actual token size
+      tokenSize: "calculating...",
       timestamp: new Date().toISOString(),
     }
     setMessages((prevMessages) => [...prevMessages, userMessage])
@@ -156,7 +133,6 @@ function App() {
         )
         const response = await sendMessage(currentInput, activeChatId)
 
-        // Extract the LlmResponse from the API response
         const llmResponse: LlmResponse =
           typeof response.response === "object"
             ? response.response
@@ -188,7 +164,6 @@ function App() {
             }
           }
 
-          // Add the AI response message
           return [
             ...updatedMessages,
             {
@@ -236,11 +211,6 @@ function App() {
       })
     } finally {
       setIsLoading(false)
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus()
-        }
-      }, 50)
     }
   }
 
@@ -249,22 +219,12 @@ function App() {
     setActiveChatId(null)
     setMessages([])
     setIsChatSidebarOpen(false)
-
-    if (inputRef.current) {
-      inputRef.current.focus()
-    }
   }
 
   const handleSelectChat = (chatId: string) => {
     console.log("Selecting chat:", chatId)
     setActiveChatId(chatId)
     setIsChatSidebarOpen(false)
-  }
-
-  const handleInputClick = () => {
-    if (inputRef.current) {
-      inputRef.current.focus()
-    }
   }
 
   const handleChatsLoaded = useCallback(
@@ -288,14 +248,12 @@ function App() {
     setMessages(loadedMessages)
   }, [])
 
-  const formatDate = (timestamp: number): string => {
-    const date = new Date(timestamp)
-    return date.toLocaleDateString([], { month: "short", day: "numeric" })
+  const toggleSidebar = () => {
+    setIsChatSidebarOpen(!isChatSidebarOpen)
   }
 
   return (
     <div className="app">
-      {/* ChatManager component for handling chats */}
       <ChatManager
         activeChatId={activeChatId}
         onChatsLoaded={handleChatsLoaded}
@@ -303,131 +261,34 @@ function App() {
         onError={setError}
       />
 
-      <div className={`chat-sidebar ${isChatSidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-header">
-          <h2>Chat History</h2>
-          <button
-            className="close-sidebar"
-            onClick={() => setIsChatSidebarOpen(false)}
-          >
-            ×
-          </button>
-        </div>
-
-        <button className="new-chat-button" onClick={handleNewChat}>
-          + New Chat
-        </button>
-
-        <div className="chat-list">
-          {chats.length === 0 ? (
-            <div className="no-chats">No previous chats</div>
-          ) : (
-            chats.map((chat) => (
-              <div
-                key={chat.id}
-                className={`chat-item ${activeChatId === chat.id ? "active" : ""}`}
-                onClick={() => handleSelectChat(chat.id)}
-              >
-                <div className="chat-item-title">{chat.title}</div>
-                <div className="chat-item-date">
-                  {formatDate(chat.updatedAt)}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+      <ChatSidebar
+        isOpen={isChatSidebarOpen}
+        onClose={() => setIsChatSidebarOpen(false)}
+        chats={chats}
+        activeChatId={activeChatId}
+        onSelectChat={handleSelectChat}
+        onNewChat={handleNewChat}
+      />
 
       <div className="chat-main">
-        <div className="header">
-          <div className="title-area">
-            <button
-              className="menu-button"
-              onClick={() => setIsChatSidebarOpen(!isChatSidebarOpen)}
-            >
-              ☰
-            </button>
-            <h1>AI Chat</h1>
-            <div className={`status-indicator ${backendStatus}`}>
-              {backendStatus === "connected"
-                ? "Online"
-                : backendStatus === "checking"
-                  ? "Connecting..."
-                  : "Offline"}
-            </div>
-          </div>
-        </div>
+        <Header onMenuClick={toggleSidebar} backendStatus={backendStatus} />
 
-        <div className="messages">
-          {messages.length === 0 && !isLoading && (
-            <div className="welcome-message">
-              <div className="welcome-icon">✨</div>
-              <h2>How can I help you today?</h2>
-              <p>Type a message below to start a conversation</p>
-            </div>
-          )}
-
-          {messages.map((message, index) => (
-            <div key={index} className={`message ${message.sender}`}>
-              <div className="message-content">
-                <CodeFormatter text={message.text} />
-                <span className="timestamp">
-                  {/* Display token count and time together in one string */}
-                  tokens: {message.tokenSize} | {formatTime(message.timestamp)}
-                </span>
-              </div>
-            </div>
-          ))}
-
-          {isLoading && (
-            <div className="message ai">
-              <div className="message-content loading">
-                <div className="typing-indicator">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
+        <MessageList messages={messages} isLoading={isLoading} />
 
         {error && (
-          <div className="error-message">
-            <p>{error.message}</p>
-            <button onClick={() => setError(null)}>Dismiss</button>
-          </div>
+          <ErrorMessage
+            message={error.message}
+            onDismiss={() => setError(null)}
+          />
         )}
 
-        <form className="input-form" onSubmit={handleSubmit}>
-          <div className="input-container" onClick={handleInputClick}>
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              disabled={isLoading || backendStatus !== "connected"}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={
-              isLoading || !input.trim() || backendStatus !== "connected"
-            }
-            className={isLoading ? "loading" : ""}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
-            </svg>
-          </button>
-        </form>
+        <MessageForm
+          input={input}
+          setInput={setInput}
+          isLoading={isLoading}
+          backendStatus={backendStatus}
+          onSubmit={handleSubmit}
+        />
       </div>
     </div>
   )

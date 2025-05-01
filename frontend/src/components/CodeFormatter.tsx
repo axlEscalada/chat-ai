@@ -15,7 +15,7 @@ import 'prismjs/components/prism-java';
 import 'prismjs/components/prism-c';
 import 'prismjs/components/prism-cpp';
 import 'prismjs/components/prism-zig';
-import './CodeFormatter.css';
+import '../CodeFormatter.css';
 
 interface CodeFormatterProps {
   text: string;

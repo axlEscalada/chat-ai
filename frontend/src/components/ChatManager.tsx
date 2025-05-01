@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { getUserChats, getChat } from "./api"
+import { getUserChats, getChat } from "../api"
 
 interface Chat {
   id: string
@@ -13,7 +13,6 @@ interface Message {
   sender: string
   timestamp: string
   isError?: boolean
-  // Add a formatted display string for tokens and time
   timeDisplay?: string
 }
 
@@ -81,13 +80,13 @@ const ChatManager = ({
           const formattedMessages = chatData.messages.map((msg: any) => {
             const timestamp = new Date(msg.timestamp).toISOString()
             const tokenSize = msg.tokenSize || "0"
-            
+
             return {
               text: msg.content,
               tokenSize: tokenSize,
               sender: msg.type === "prompt" ? "user" : "ai",
               timestamp: timestamp,
-              timeDisplay: createTimeDisplay(tokenSize, timestamp)
+              timeDisplay: createTimeDisplay(tokenSize, timestamp),
             }
           })
 
