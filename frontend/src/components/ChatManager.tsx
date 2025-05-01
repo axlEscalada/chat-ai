@@ -67,10 +67,12 @@ const ChatManager = ({
   const loadChatMessages = useCallback(
     async (chatId: string) => {
       if (skipMessageLoading) {
-        console.log(`Skipping message loading for chat: ${chatId} as requested by App component`)
+        console.log(
+          `Skipping message loading for chat: ${chatId} as requested by App component`,
+        )
         return true
       }
-      
+
       console.log(`Loading messages for chat: ${chatId}`)
       setIsLoading(true)
 
@@ -132,12 +134,16 @@ const ChatManager = ({
     }
 
     if (skipMessageLoading) {
-      console.log(`ChatManager: Skipping message loading for ${activeChatId} as requested`)
+      console.log(
+        `ChatManager: Skipping message loading for ${activeChatId} as requested`,
+      )
       return
     }
 
     if (activeChatId !== lastLoadedChatId) {
-      console.log(`ChatManager: Loading chat ${activeChatId} (different from last loaded: ${lastLoadedChatId})`)
+      console.log(
+        `ChatManager: Loading chat ${activeChatId} (different from last loaded: ${lastLoadedChatId})`,
+      )
       loadChatMessages(activeChatId).catch((err) => {
         console.error("Failed to load chat messages:", err)
       })

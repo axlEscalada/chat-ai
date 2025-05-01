@@ -25,15 +25,16 @@ export class GeminiLlmService implements LlmService {
     }
   }
 
-  async estimatePromptToken(prompt: string): Promise<number> {
+  async countPromptToken(prompt: string): Promise<number> {
     try {
-      const response = await this.ai.models.countTokens({
+      console.log(`Prompt for counting ${prompt}`)
+      const countTokensResponse = await this.ai.models.countTokens({
         model: "gemini-2.0-flash",
         contents: prompt,
-      })
-      console.log(response)
+      });
+      console.log(countTokensResponse.totalTokens);
 
-      return response.totalTokens || 0
+      return countTokensResponse.totalTokens || 0
     } catch (error) {
       console.error("Error generating content: ", error)
       throw error

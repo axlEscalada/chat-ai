@@ -1,4 +1,6 @@
-import React, { useRef, useEffect, FormEvent } from "react"
+import React, { useRef, useEffect, FormEvent, useState } from "react"
+import { getTokenCount } from "../../api"
+import { BiHash } from "react-icons/bi"
 
 interface MessageFormProps {
   input: string
@@ -16,6 +18,9 @@ const MessageForm: React.FC<MessageFormProps> = ({
   onSubmit,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [showTokenCount, setShowTokenCount] = useState(false)
+  const [tokenCount, setTokenCount] = useState<string | null>(null)
+  const [isCountingTokens, setIsCountingTokens] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -23,13 +28,37 @@ const MessageForm: React.FC<MessageFormProps> = ({
         inputRef.current.focus()
       }
     }, 100)
-
     return () => clearTimeout(timer)
   }, [])
 
   const handleInputClick = () => {
     if (inputRef.current) {
       inputRef.current.focus()
+    }
+  }
+
+  const handleTokenCount = async () => {
+    if (!input.trim() || isCountingTokens) return
+
+    setIsCountingTokens(true)
+    try {
+      const count = await getTokenCount(input)
+      setTokenCount(count)
+      setShowTokenCount(true)
+
+      setTimeout(() => {
+        setShowTokenCount(false)
+      }, 3000)
+    } catch (error) {
+      console.error("Error counting tokens:", error)
+      setTokenCount("Error")
+      setShowTokenCount(true)
+
+      setTimeout(() => {
+        setShowTokenCount(false)
+      }, 2000)
+    } finally {
+      setIsCountingTokens(false)
     }
   }
 
@@ -45,6 +74,28 @@ const MessageForm: React.FC<MessageFormProps> = ({
           disabled={isLoading || backendStatus !== "connected"}
         />
       </div>
+
+      <button
+        type="button"
+        onClick={handleTokenCount}
+        disabled={
+          isLoading ||
+          !input.trim() ||
+          backendStatus !== "connected" ||
+          isCountingTokens
+        }
+        className="token-button"
+        title="Count prompt tokens"
+      >
+        <BiHash size={20} />
+      </button>
+
+      {showTokenCount && (
+        <div className="token-popup">
+          {isCountingTokens ? "Counting..." : `Tokens: ${tokenCount}`}
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={isLoading || !input.trim() || backendStatus !== "connected"}

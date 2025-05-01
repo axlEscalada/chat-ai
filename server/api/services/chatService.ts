@@ -67,7 +67,7 @@ export class ChatServiceImpl implements ChatService {
   }
 
   async countPromptTokens(prompt: string): Promise<number> {
-    return llmService.estimatePromptToken(prompt)
+    return llmService.countPromptToken(prompt)
   }
 }
 

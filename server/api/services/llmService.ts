@@ -8,7 +8,7 @@ export interface LlmResponse {
 
 export interface LlmService {
   generateResponse(prompt: string): Promise<LlmResponse>
-  estimatePromptToken(prompt: string): Promise<number>
+  countPromptToken(prompt: string): Promise<number>
 }
 
 export const llmService = new GeminiLlmService()

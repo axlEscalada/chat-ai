@@ -84,7 +84,7 @@ export class ChatController {
 
   async countPromptTokens(req: Request, res: Response): Promise<void> {
     try {
-      const { prompt } = req.params
+      const { prompt } = req.body
 
       const tokenSize = await chatService.countPromptTokens(prompt)
 

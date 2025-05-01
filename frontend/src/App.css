@@ -507,6 +507,60 @@ body {
   cursor: not-allowed;
 }
 
+.token-button {
+  background-color: var(--surface-color) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  margin-right: 8px;
+  transition: all var(--transition-speed);
+}
+
+.token-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--primary-color) !important;
+}
+
+.token-button:disabled {
+  background-color: rgba(30, 30, 30, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  opacity: 0.6;
+}
+
+/* Token count popup styling */
+.token-popup {
+  position: absolute;
+  bottom: 64px;
+  right: 64px;
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  padding: 8px 12px;
+  border-radius: var(--border-radius);
+  font-size: 12px;
+  z-index: 100;
+  box-shadow: var(--box-shadow);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: fadeIn 0.3s;
+}
+
+.token-popup::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 20px;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--surface-color) transparent transparent transparent;
+}
+
+@media (max-width: 768px) {
+  .token-popup {
+    bottom: 60px;
+    right: 54px;
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}
+
 /* Desktop view adjustments */
 @media (min-width: 992px) {
   /* Optionally, make the sidebar fixed instead of absolutely positioned on larger screens */
