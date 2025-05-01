@@ -1,31 +1,17 @@
 import { useState, useRef, useEffect, useCallback, FormEvent } from "react"
 import {
   sendMessage,
-  clearMessageHistory,
   checkServerHealth,
   createChat,
-  getUserChats,
-  getChat,
-  Message,
+  LlmResponse
 } from "./api"
 import CodeFormatter from "./CodeFormatter"
+import { ChatManager, Chat, Message } from "./ChatManager"
 import "./App.css"
 
 interface ApiError {
   message: string
   shownInChat?: boolean
-}
-
-interface Chat {
-  id: string
-  title: string
-  updatedAt: number
-}
-
-interface ApiResponse {
-  response: string
-  chatId?: string
-  [key: string]: any
 }
 
 function App() {
@@ -37,24 +23,20 @@ function App() {
     "checking" | "connected" | "disconnected"
   >("checking")
   const [chats, setChats] = useState<Chat[]>([])
-  
-  // Initialize activeChatId from localStorage, but after this point
-  // we'll manage it purely through React state
+
   const [activeChatId, setActiveChatId] = useState<string | null>(() => {
-    // Only do this once on initial render
-    const savedChatId = localStorage.getItem("activeChatId");
-    console.log("Initial activeChatId from localStorage:", savedChatId);
-    return savedChatId;
+    const savedChatId = localStorage.getItem("activeChatId")
+    console.log("Initial activeChatId from localStorage:", savedChatId)
+    return savedChatId
   })
-  
+
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  
-  // Whenever activeChatId changes, update localStorage
+
   useEffect(() => {
-    console.log("activeChatId changed to:", activeChatId);
+    console.log("activeChatId changed to:", activeChatId)
     if (activeChatId) {
       localStorage.setItem("activeChatId", activeChatId)
     } else {
@@ -62,26 +44,11 @@ function App() {
     }
   }, [activeChatId])
 
-  // Check backend connection on mount
   useEffect(() => {
     const checkConnection = async () => {
       try {
         const isConnected = await checkServerHealth()
         setBackendStatus(isConnected ? "connected" : "disconnected")
-
-        if (isConnected) {
-          await loadUserChats()
-          
-          // If we have an active chat ID, try to load its messages
-          if (activeChatId) {
-            try {
-              await loadActiveChatMessages(activeChatId)
-            } catch (err) {
-              console.error("Failed to load initial chat messages, clearing activeChatId")
-              setActiveChatId(null)
-            }
-          }
-        }
       } catch (error) {
         setBackendStatus("disconnected")
         console.error("Backend connection error:", error)
@@ -89,14 +56,12 @@ function App() {
     }
 
     checkConnection()
-  }, []) // Only run on initial mount
+  }, [])
 
-  // Scroll to bottom whenever messages change
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
-  // Focus input on mount
   useEffect(() => {
     const timer = setTimeout(() => {
       if (inputRef.current) {
@@ -111,49 +76,6 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  const loadUserChats = async () => {
-    try {
-      const userChats = await getUserChats()
-      setChats(userChats)
-      
-      // Validate that our active chat ID exists in the returned chats
-      if (activeChatId && userChats.length > 0) {
-        const chatExists = userChats.some(chat => chat.id === activeChatId)
-        if (!chatExists) {
-          console.warn(`Active chat ID ${activeChatId} not found in user chats, resetting.`)
-          setActiveChatId(null)
-        }
-      }
-      
-      return userChats
-    } catch (error) {
-      console.error("Error loading chats:", error)
-      return []
-    }
-  }
-
-  const loadActiveChatMessages = async (chatId: string) => {
-    console.log(`Loading messages for chat: ${chatId}`)
-    try {
-      const chatData = await getChat(chatId)
-
-      if (chatData && chatData.messages) {
-        const formattedMessages = chatData.messages.map((msg: any) => ({
-          text: msg.content,
-          sender: msg.type === "prompt" ? "user" : "ai",
-          timestamp: new Date(msg.timestamp).toISOString(),
-        }))
-
-        setMessages(formattedMessages)
-      }
-      return true
-    } catch (error) {
-      console.error(`Error loading chat messages for ${chatId}:`, error)
-      setError({ message: "Failed to load chat messages" })
-      throw error
-    }
-  }
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
@@ -161,56 +83,62 @@ function App() {
 
     setError(null)
 
-    // Always add the user message to the UI immediately
     const userMessage: Message = {
       text: input,
       sender: "user",
+      tokenSize: "0",
       timestamp: new Date().toISOString(),
     }
     setMessages((prevMessages) => [...prevMessages, userMessage])
     setIsLoading(true)
-    
+
     const currentInput = input
     setInput("")
 
     try {
       if (!activeChatId) {
-        // Create a new chat
-        console.log("Creating a new chat with message:", currentInput.substring(0, 30))
+        console.log(
+          "Creating a new chat with message:",
+          currentInput.substring(0, 30),
+        )
         const newChatData = await createChat(currentInput)
-        
-        // Validate that we got a chat ID back
+
         if (!newChatData.chatId) {
           throw new Error("Server did not return a valid chat ID")
         }
-        
+
         console.log("New chat created with ID:", newChatData.chatId)
-        
-        // Set the new chat ID in state
+
         setActiveChatId(newChatData.chatId)
+
+        const llmResponse: LlmResponse = newChatData.response || { text: "I received your message, but couldn't formulate a response." }
         
-        // Add AI response directly to messages
         setMessages((prevMessages) => [
           ...prevMessages,
           {
-            text: newChatData.response || "I received your message, but couldn't formulate a response.",
+            text: llmResponse.text,
+            tokenSize: llmResponse.responseTokenSize ? String(llmResponse.responseTokenSize) : "0",
             sender: "ai",
             timestamp: new Date().toISOString(),
           },
         ])
-        
-        // Update chat list
-        await loadUserChats()
       } else {
-        // Using existing chat
-        console.log(`Sending message to existing chat ${activeChatId}:`, currentInput.substring(0, 30))
+        console.log(
+          `Sending message to existing chat ${activeChatId}:`,
+          currentInput.substring(0, 30),
+        )
         const response = await sendMessage(currentInput, activeChatId)
-        
-        // Add AI response to messages
+
+        // Extract the LlmResponse from the API response
+        const llmResponse: LlmResponse = typeof response.response === 'object' 
+          ? response.response 
+          : { text: response.response || "I received your message, but couldn't formulate a response." }
+
         setMessages((prevMessages) => [
           ...prevMessages,
           {
-            text: response.response || "I received your message, but couldn't formulate a response.",
+            text: llmResponse.text,
+            tokenSize: llmResponse.responseTokenSize ? String(llmResponse.responseTokenSize) : "0",
             sender: "ai",
             timestamp: new Date().toISOString(),
           },
@@ -218,13 +146,17 @@ function App() {
       }
     } catch (error) {
       console.error("Error in handleSubmit:", error)
-      const errorMessage = error instanceof Error ? error.message : "Something went wrong"
+      const errorMessage =
+        error instanceof Error ? error.message : "Something went wrong"
       setError({ message: errorMessage })
 
       setMessages((prevMessages) => [
         ...prevMessages,
         {
-          text: "Sorry, there was an error processing your request: " + errorMessage,
+          text:
+            "Sorry, there was an error processing your request: " +
+            errorMessage,
+          tokenSize: "0",
           sender: "system",
           timestamp: new Date().toISOString(),
           isError: true,
@@ -251,24 +183,10 @@ function App() {
     }
   }
 
-  const handleSelectChat = async (chatId: string) => {
+  const handleSelectChat = (chatId: string) => {
     console.log("Selecting chat:", chatId)
-    
-    // First clear messages and show loading state
-    setMessages([])
-    setIsLoading(true)
-    
-    try {
-      // Load messages for this chat before updating active chat ID
-      await loadActiveChatMessages(chatId)
-      setActiveChatId(chatId)
-    } catch (error) {
-      console.error(`Failed to load messages for chat ${chatId}:`, error)
-      setError({ message: "Could not load selected chat" })
-    } finally {
-      setIsLoading(false)
-      setIsChatSidebarOpen(false)
-    }
+    setActiveChatId(chatId)
+    setIsChatSidebarOpen(false)
   }
 
   const handleInputClick = () => {
@@ -277,12 +195,26 @@ function App() {
     }
   }
 
-  const handleClearChat = useCallback(() => {
-    if (window.confirm("Are you sure you want to clear all messages?")) {
-      setMessages([])
-      clearMessageHistory()
-      setActiveChatId(null)
-    }
+  const handleChatsLoaded = useCallback(
+    (loadedChats: Chat[]) => {
+      setChats(loadedChats)
+
+      // Check if current active chat still exists
+      if (activeChatId && loadedChats.length > 0) {
+        const chatExists = loadedChats.some((chat) => chat.id === activeChatId)
+        if (!chatExists) {
+          console.warn(
+            `Active chat ID ${activeChatId} not found in user chats, resetting.`,
+          )
+          setActiveChatId(null)
+        }
+      }
+    },
+    [activeChatId],
+  )
+
+  const handleChatMessagesLoaded = useCallback((loadedMessages: Message[]) => {
+    setMessages(loadedMessages)
   }, [])
 
   const formatTime = (timestamp: string): string => {
@@ -298,6 +230,13 @@ function App() {
 
   return (
     <div className="app">
+      <ChatManager
+        activeChatId={activeChatId}
+        onChatsLoaded={handleChatsLoaded}
+        onChatMessagesLoaded={handleChatMessagesLoaded}
+        onError={setError}
+      />
+
       <div className={`chat-sidebar ${isChatSidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <h2>Chat History</h2>
@@ -351,9 +290,6 @@ function App() {
                   : "Offline"}
             </div>
           </div>
-          <button className="clear-button" onClick={handleClearChat}>
-            Clear Chat
-          </button>
         </div>
 
         <div className="messages">
@@ -370,7 +306,7 @@ function App() {
               <div className="message-content">
                 <CodeFormatter text={message.text} />
                 <span className="timestamp">
-                  {formatTime(message.timestamp)}
+                  tokens: {message.tokenSize} | {formatTime(message.timestamp)}
                 </span>
               </div>
             </div>

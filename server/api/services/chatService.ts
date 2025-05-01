@@ -1,12 +1,13 @@
 import { firebaseRepository } from "../repositories/firebaseRepository"
 import { geminiService } from "./geminiLlmService"
+import { LlmResponse } from "./llmService"
 
 export interface ChatService {
   createChat(
     sessionId: string,
     initialPrompt?: string,
-  ): Promise<[string, string]>
-  sendMessage(chatId: string, prompt: string): Promise<string>
+  ): Promise<[string, LlmResponse]>
+  sendMessage(chatId: string, prompt: string): Promise<LlmResponse>
   getChat(chatId: string): Promise<any>
   getUserChats(sessionId: string): Promise<any[]>
 }
@@ -15,9 +16,9 @@ export class ChatServiceImpl implements ChatService {
   async createChat(
     sessionId: string,
     initialPrompt?: string,
-  ): Promise<[string, string]> {
+  ): Promise<[string, LlmResponse]> {
     try {
-      let response = ""
+      let response: LlmResponse = { text: "" }
       let chatId: string
 
       if (initialPrompt) {
@@ -25,7 +26,7 @@ export class ChatServiceImpl implements ChatService {
         chatId = await firebaseRepository.createChat(
           sessionId,
           initialPrompt,
-          response,
+          response.text,
         )
       } else {
         chatId = await firebaseRepository.createChat(sessionId)
@@ -38,7 +39,7 @@ export class ChatServiceImpl implements ChatService {
     }
   }
 
-  async sendMessage(chatId: string, prompt: string): Promise<string> {
+  async sendMessage(chatId: string, prompt: string): Promise<LlmResponse> {
     try {
       const response = await geminiService.generateResponse(prompt)
 

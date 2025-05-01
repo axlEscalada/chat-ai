@@ -4,16 +4,16 @@
   "private": true,
   "workspaces": [
     "frontend",
-    "backend"
+    "server"
   ],
   "scripts": {
-    "dev:backend": "npm run dev --workspace=backend",
+    "dev:server": "npm run dev --workspace=server",
     "dev:frontend": "npm run start --workspace=frontend",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "build:backend": "npm run build --workspace=backend",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:frontend\"",
+    "build:server": "npm run build --workspace=server",
     "build:frontend": "npm run build --workspace=frontend",
-    "build": "npm run build:backend && npm run build:frontend",
-    "start:backend": "npm run start --workspace=backend",
+    "build": "npm run build:server && npm run build:frontend",
+    "start:server": "npm run start --workspace=server",
     "start:frontend": "npm run start --workspace=frontend"
   },
   "devDependencies": {
