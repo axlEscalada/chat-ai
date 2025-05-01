@@ -12,6 +12,8 @@ import {
   setDoc,
   updateDoc,
   arrayUnion,
+  DocumentData,
+  QueryDocumentSnapshot,
 } from "firebase/firestore"
 import { v4 as uuidv4 } from "uuid"
 import * as dotenv from "dotenv"
@@ -247,7 +249,7 @@ export class FirebaseRepository {
       const querySnapshot = await getDocs(q)
       const chats: Chat[] = []
 
-      querySnapshot.forEach((doc) => {
+      querySnapshot.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
         const data = doc.data() as Chat
         chats.push(data)
       })
