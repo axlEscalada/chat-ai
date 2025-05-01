@@ -1,5 +1,6 @@
 export interface Message {
   text: string
+  tokenSize: string
   sender: "user" | "ai" | "system"
   timestamp: string
   isError?: boolean
@@ -15,16 +16,22 @@ interface ErrorResponse {
   [key: string]: any
 }
 
+export interface LlmResponse {
+  text: string
+  promptTokenSize?: number
+  responseTokenSize?: number
+}
+
 interface ChatResponse {
   chatId: string
-  response?: string
+  response?: LlmResponse
   [key: string]: any
 }
 
 const API_URL =
   process.env.NODE_ENV === "production"
     ? "https://chat-ai-server-axlescalada-axlescaladas-projects.vercel.app"
-    : "http://localhost:3000"
+    : "http://localhost:5000"
 
 const API_TIMEOUT = 60000 // 60 seconds timeout
 
@@ -285,17 +292,6 @@ export const checkServerHealth = async (): Promise<boolean> => {
     return isHealthy
   } catch (error) {
     console.error("Health check failed:", error)
-    return false
-  }
-}
-
-export const clearMessageHistory = (): boolean => {
-  try {
-    localStorage.removeItem("activeChatId")
-    console.log("Cleared active chat ID")
-    return true
-  } catch (error) {
-    console.error("Error clearing message history:", error)
     return false
   }
 }

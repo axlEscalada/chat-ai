@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore"
 import { v4 as uuidv4 } from "uuid"
 import * as dotenv from "dotenv"
+import { LlmResponse } from "../services/llmService"
 
 dotenv.config()
 
@@ -37,6 +38,7 @@ export enum MessageType {
 export interface Message {
   type: MessageType
   content: string
+  tokenSize: number
   timestamp: number
 }
 
@@ -112,7 +114,7 @@ export class FirebaseRepository {
   public async createChat(
     sessionId: string,
     initialPrompt?: string,
-    initialResponse?: string,
+    response?: LlmResponse,
   ): Promise<string> {
     if (!this.ensureInitialized()) {
       throw new Error("Firebase not initialized")
@@ -128,13 +130,15 @@ export class FirebaseRepository {
         messages.push({
           type: MessageType.PROMPT,
           content: initialPrompt,
+          tokenSize: response?.promptTokenSize || 0,
           timestamp: now,
         })
 
-        if (initialResponse) {
+        if (response) {
           messages.push({
             type: MessageType.RESPONSE,
-            content: initialResponse,
+            content: response.text,
+            tokenSize: response.responseTokenSize || 0,
             timestamp: now + 1,
           })
         }
@@ -167,7 +171,7 @@ export class FirebaseRepository {
   public async addMessagePair(
     chatId: string,
     prompt: string,
-    response: string,
+    response: LlmResponse,
   ): Promise<void> {
     if (!this.ensureInitialized()) {
       throw new Error("Firebase not initialized")
@@ -178,12 +182,14 @@ export class FirebaseRepository {
       const promptMessage: Message = {
         type: MessageType.PROMPT,
         content: prompt,
+        tokenSize: response.promptTokenSize || 0,
         timestamp: now,
       }
 
       const responseMessage: Message = {
         type: MessageType.RESPONSE,
-        content: response,
+        content: response.text,
+        tokenSize: response.responseTokenSize || 0,
         timestamp: now + 1,
       }
 
