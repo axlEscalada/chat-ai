@@ -6,24 +6,24 @@ import apiRoutes from "./routes/routes"
 dotenv.config()
 
 const app = express()
-const port = 3001
-const corsOptions = {
-  origin:
-    process.env.NODE_ENV === "production"
-      ? "https://chat-ai.vercel.app"
-      : "http://localhost:3000",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-  optionsSuccessStatus: 200,
-}
+const port = 5000
+// const corsOptions = {
+//   origin:
+//     process.env.NODE_ENV === "production"
+//       ? "https://chat-ai.vercel.app"
+//       : "http://localhost:3000",
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization"],
+//   credentials: true,
+//   optionsSuccessStatus: 200,
+// }
 
-app.use(express.json())
-app.use(cors(corsOptions))
+// app.use(express.json())
+// app.use(cors(corsOptions))
+//
+// app.use(apiRoutes)
 
-app.use(apiRoutes)
-
-app.get("/health", (_, res) => {
+app.get("/", (_, res) => {
   res.send("Welcome to the AI API")
 })
 
