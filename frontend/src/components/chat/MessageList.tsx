@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from "react"
 import MessageItem from "./MessageItem"
-import { Message } from "./ChatManager"
+import { Message } from "../ChatManager"
 
 interface MessageListProps {
   messages: Message[]

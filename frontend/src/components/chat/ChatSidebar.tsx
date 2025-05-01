@@ -1,5 +1,5 @@
 import React from "react"
-import { Chat } from "./ChatManager"
+import { Chat } from "../ChatManager"
 
 interface ChatSidebarProps {
   isOpen: boolean
@@ -16,7 +16,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   chats,
   activeChatId,
   onSelectChat,
-  onNewChat
+  onNewChat,
 }) => {
   const formatDate = (timestamp: number): string => {
     const date = new Date(timestamp)
@@ -47,9 +47,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
               onClick={() => onSelectChat(chat.id)}
             >
               <div className="chat-item-title">{chat.title}</div>
-              <div className="chat-item-date">
-                {formatDate(chat.updatedAt)}
-              </div>
+              <div className="chat-item-date">{formatDate(chat.updatedAt)}</div>
             </div>
           ))
         )}

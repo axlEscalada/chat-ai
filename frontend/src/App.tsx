@@ -1,12 +1,20 @@
 import { useState, useCallback, FormEvent, useEffect } from "react"
+import {
+  useParams,
+  useNavigate,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom"
 import { sendMessage, checkServerHealth, createChat, LlmResponse } from "./api"
 import { ChatManager, Chat, Message } from "./components/ChatManager"
 
-import MessageList from "./components/MessageList"
-import MessageForm from "./components/MessageForm"
-import ChatSidebar from "./components/ChatSidebar"
-import Header from "./components/Header"
-import ErrorMessage from "./components/ErrorMessage"
+// Imported components
+import MessageList from "./components/chat/MessageList"
+import MessageForm from "./components/chat/MessageForm"
+import ChatSidebar from "./components/chat/ChatSidebar"
+import Header from "./components/layout/Header"
+import ErrorMessage from "./components/shared/ErrorMessage"
 import "./App.css"
 
 interface ApiError {
@@ -14,7 +22,10 @@ interface ApiError {
   shownInChat?: boolean
 }
 
-function App() {
+const ChatInterface = () => {
+  const { chatId } = useParams<{ chatId?: string }>()
+  const navigate = useNavigate()
+
   const [input, setInput] = useState<string>("")
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -24,14 +35,28 @@ function App() {
   >("checking")
   const [chats, setChats] = useState<Chat[]>([])
 
-  const [activeChatId, setActiveChatId] = useState<string | null>(() => {
-    const savedChatId = localStorage.getItem("activeChatId")
-    console.log("Initial activeChatId from localStorage:", savedChatId)
-    return savedChatId
-  })
-
+  const [activeChatId, setActiveChatId] = useState<string | null>(
+    chatId || null,
+  )
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(false)
 
+  // Update activeChatId when URL changes
+  useEffect(() => {
+    if (chatId && chatId !== activeChatId) {
+      console.log("URL chatId changed to:", chatId)
+      setActiveChatId(chatId)
+    }
+  }, [chatId, activeChatId])
+
+  // Update URL when activeChatId changes
+  useEffect(() => {
+    if (activeChatId && activeChatId !== chatId) {
+      console.log("Updating URL to chat ID:", activeChatId)
+      navigate(`/chat/${activeChatId}`, { replace: true })
+    }
+  }, [activeChatId, chatId, navigate])
+
+  // Effect to persist activeChatId to localStorage
   useEffect(() => {
     console.log("activeChatId changed to:", activeChatId)
     if (activeChatId) {
@@ -41,6 +66,7 @@ function App() {
     }
   }, [activeChatId])
 
+  // Effect to check backend connection status
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -88,6 +114,7 @@ function App() {
 
         console.log("New chat created with ID:", newChatData.chatId)
 
+        // Set active chat ID and update URL
         setActiveChatId(newChatData.chatId)
 
         const llmResponse: LlmResponse = newChatData.response || {
@@ -219,12 +246,16 @@ function App() {
     setActiveChatId(null)
     setMessages([])
     setIsChatSidebarOpen(false)
+
+    navigate("/")
   }
 
   const handleSelectChat = (chatId: string) => {
     console.log("Selecting chat:", chatId)
     setActiveChatId(chatId)
     setIsChatSidebarOpen(false)
+
+    navigate(`/chat/${chatId}`)
   }
 
   const handleChatsLoaded = useCallback(
@@ -238,10 +269,11 @@ function App() {
             `Active chat ID ${activeChatId} not found in user chats, resetting.`,
           )
           setActiveChatId(null)
+          navigate("/")
         }
       }
     },
-    [activeChatId],
+    [activeChatId, navigate],
   )
 
   const handleChatMessagesLoaded = useCallback((loadedMessages: Message[]) => {
@@ -291,6 +323,18 @@ function App() {
         />
       </div>
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<ChatInterface />} />
+
+      <Route path="/chat/:chatId" element={<ChatInterface />} />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 
