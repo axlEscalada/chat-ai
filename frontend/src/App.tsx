@@ -1,5 +1,5 @@
-import { useState, useCallback, FormEvent, useEffect } from "react"
-import { useParams, useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { useState, useCallback, FormEvent, useEffect, useRef } from "react"
+import { useParams, useNavigate, Routes, Route, Navigate } from "react-router-dom"
 import { sendMessage, checkServerHealth, createChat, LlmResponse } from "./api"
 import { ChatManager, Chat, Message } from "./components/ChatManager"
 import MessageList from "./components/chat/MessageList"
@@ -15,18 +15,16 @@ interface ApiError {
 }
 
 function App() {
-  const location = useLocation();
-  
   return (
     <Routes>
       <Route 
         path="/" 
-        element={<ChatInterface key={`new-chat-${location.key}`} isNewChat={true} />} 
+        element={<ChatInterface isNewChat={true} />} 
       />
       
       <Route 
         path="/chat/:chatId" 
-        element={<ChatInterface key={`chat-${location.key}`} isNewChat={false} />} 
+        element={<ChatInterface isNewChat={false} />} 
       />
       
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -47,10 +45,16 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   >("checking");
   const [chats, setChats] = useState<Chat[]>([]);
   
+  const isInternalNavigation = useRef(false);
+  const persistMessages = useRef<Message[]>([]);
+  const isCreatingChat = useRef(false);
+  const isSwitchingChat = useRef(false);
+  
   const [activeChatId, setActiveChatId] = useState<string | null>(() => {
     if (isNewChat) {
       console.log("NEW CHAT ROUTE - clearing localStorage");
       localStorage.removeItem("activeChatId");
+      persistMessages.current = []; // Clear persisted messages for new chat
       return null;
     }
     
@@ -65,6 +69,26 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(false);
 
   useEffect(() => {
+    if (persistMessages.current.length > 0 && isInternalNavigation.current) {
+      console.log("Restoring persisted messages after navigation");
+      setMessages(persistMessages.current);
+      isInternalNavigation.current = false;
+    } else if (isNewChat && !isInternalNavigation.current) {
+      console.log("On new chat route, clearing messages");
+      setMessages([]);
+      persistMessages.current = [];
+    }
+  }, [isNewChat]);
+
+  // Update activeChatId when chatId parameter changes
+  useEffect(() => {
+    if (chatId && chatId !== activeChatId) {
+      console.log("URL chatId changed, updating activeChatId:", chatId);
+      setActiveChatId(chatId);
+    }
+  }, [chatId, activeChatId]);
+
+  useEffect(() => {
     console.log("activeChatId changed to:", activeChatId);
     if (activeChatId) {
       localStorage.setItem("activeChatId", activeChatId);
@@ -73,7 +97,6 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
     }
   }, [activeChatId, isNewChat]);
 
-  // Effect to check backend connection status
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -101,7 +124,13 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
       tokenSize: "calculating...",
       timestamp: new Date().toISOString(),
     };
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    
+    setMessages((prevMessages) => {
+      const updatedMessages = [...prevMessages, userMessage];
+      persistMessages.current = updatedMessages;
+      return updatedMessages;
+    });
+    
     setIsLoading(true);
 
     const currentInput = input;
@@ -113,6 +142,9 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
           "Creating a new chat with message:",
           currentInput.substring(0, 30),
         );
+        
+        isCreatingChat.current = true;
+        
         const newChatData = await createChat(currentInput);
 
         if (!newChatData.chatId) {
@@ -123,8 +155,6 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
         
         setActiveChatId(newChatData.chatId);
         
-        navigate(`/chat/${newChatData.chatId}`, { replace: true });
-
         const llmResponse: LlmResponse = newChatData.response || {
           text: "I received your message, but couldn't formulate a response.",
         };
@@ -151,7 +181,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
             }
           }
 
-          return [
+          const newMessages = [
             ...updatedMessages,
             {
               text: llmResponse.text,
@@ -160,12 +190,24 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
               timestamp: new Date().toISOString(),
             },
           ];
+          
+          persistMessages.current = newMessages;
+          
+          return newMessages;
         });
+        
+        isInternalNavigation.current = true;
+        
+        navigate(`/chat/${newChatData.chatId}`, { replace: true });
+        
+        isCreatingChat.current = false;
+        
       } else {
         console.log(
           `Sending message to existing chat ${activeChatId}:`,
           currentInput.substring(0, 30),
         );
+        
         const response = await sendMessage(currentInput, activeChatId);
 
         const llmResponse: LlmResponse =
@@ -199,7 +241,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
             }
           }
 
-          return [
+          const newMessages = [
             ...updatedMessages,
             {
               text: llmResponse.text,
@@ -208,6 +250,10 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
               timestamp: new Date().toISOString(),
             },
           ];
+          
+          persistMessages.current = newMessages;
+          
+          return newMessages;
         });
       }
     } catch (error) {
@@ -231,7 +277,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
           }
         }
 
-        return [
+        const newMessages = [
           ...updatedMessages,
           {
             text:
@@ -243,23 +289,46 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
             isError: true,
           },
         ];
+        
+        persistMessages.current = newMessages;
+        
+        return newMessages;
       });
+      
+      isCreatingChat.current = false;
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleNewChat = useCallback(() => {
-    console.log("Starting new chat - using hard navigation");
+    console.log("Starting new chat - navigating to root");
+    
+    setMessages([]);
+    
+    persistMessages.current = [];
+    
+    setActiveChatId(null);
     
     navigate('/', { replace: true });
-    
   }, [navigate]);
 
   const handleSelectChat = useCallback((chatId: string) => {
+    if (activeChatId === chatId) {
+      console.log("Already on this chat, no need to navigate");
+      return;
+    }
+    
     console.log("Selecting chat:", chatId);
+    
+    persistMessages.current = [];
+    
+    setMessages([]);
+    
+    isSwitchingChat.current = true;
+    
     navigate(`/chat/${chatId}`, { replace: true });
-  }, [navigate]);
+  }, [activeChatId, navigate]);
 
   const handleChatsLoaded = useCallback(
     (loadedChats: Chat[]) => {
@@ -271,6 +340,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
           console.warn(
             `Active chat ID ${activeChatId} not found in user chats, resetting.`,
           );
+          persistMessages.current = [];
           navigate('/', { replace: true });
         }
       }
@@ -279,7 +349,31 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   );
 
   const handleChatMessagesLoaded = useCallback((loadedMessages: Message[]) => {
-    setMessages(loadedMessages);
+    if (isCreatingChat.current) {
+      console.log("In the middle of creating a chat, not loading messages from server");
+      return;
+    }
+    
+    if (persistMessages.current.length > 0 && isInternalNavigation.current) {
+      console.log("Using persisted messages instead of loading from server (internal nav)");
+      return;
+    }
+    
+    if (isSwitchingChat.current) {
+      console.log("Switching chats, loading messages from server");
+      setMessages(loadedMessages);
+      persistMessages.current = loadedMessages;
+      isSwitchingChat.current = false;
+      return;
+    }
+    
+    if (persistMessages.current.length === 0) {
+      console.log("No persisted messages, loading from server");
+      setMessages(loadedMessages);
+      persistMessages.current = loadedMessages;
+    } else {
+      console.log("Using persisted messages instead of loading from server");
+    }
   }, []);
 
   const toggleSidebar = () => {
@@ -294,6 +388,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
         onChatMessagesLoaded={handleChatMessagesLoaded}
         onError={setError}
         isNewChat={isNewChat}
+        skipMessageLoading={isCreatingChat.current}
       />
 
       <ChatSidebar

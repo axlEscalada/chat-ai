@@ -9,6 +9,7 @@ export interface ChatService {
   sendMessage(chatId: string, prompt: string): Promise<LlmResponse>
   getChat(chatId: string): Promise<any>
   getUserChats(sessionId: string): Promise<any[]>
+  countPromptTokens(prompt: string): Promise<number>
 }
 
 export class ChatServiceImpl implements ChatService {
@@ -63,6 +64,10 @@ export class ChatServiceImpl implements ChatService {
 
   async getUserChats(sessionId: string): Promise<any[]> {
     return firebaseRepository.getUserChats(sessionId)
+  }
+
+  async countPromptTokens(prompt: string): Promise<number> {
+    return llmService.estimatePromptToken(prompt)
   }
 }
 

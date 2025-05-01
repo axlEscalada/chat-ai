@@ -271,6 +271,30 @@ export const getUserChats = async (): Promise<any[]> => {
   }
 }
 
+export const getTokenCount = async (prompt: string): Promise<string> => {
+  try {
+    const response = await fetchWithTimeout(`${API_URL}/chat/countTokens`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      mode: "cors",
+      body: JSON.stringify({
+        prompt,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to count tokens")
+    }
+
+    return safeJsonParse(response)
+  } catch (error) {
+    console.error("Error counting tokens:", error)
+    return ""
+  }
+}
+
 export const checkServerHealth = async (): Promise<boolean> => {
   try {
     console.log("Checking server health...")
