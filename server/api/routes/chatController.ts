@@ -81,6 +81,19 @@ export class ChatController {
       res.status(500).json({ error: "Failed to get user chats" })
     }
   }
+
+  async countPromptTokens(req: Request, res: Response): Promise<void> {
+    try {
+      const { prompt } = req.body
+
+      const tokenSize = await chatService.countPromptTokens(prompt)
+
+      res.status(200).json(tokenSize)
+    } catch (error) {
+      console.error("Error getting token size:", error)
+      res.status(500).json({ error: "Failed to get token size" })
+    }
+  }
 }
 
 export const chatController = new ChatController()

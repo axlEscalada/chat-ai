@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { getUserChats, getChat } from "../api"
+import { useNavigate } from "react-router-dom"
 
 interface Chat {
   id: string
@@ -21,6 +22,7 @@ interface ChatManagerProps {
   onChatMessagesLoaded: (messages: Message[]) => void
   onError: (error: { message: string }) => void
   isNewChat?: boolean
+  skipMessageLoading?: boolean
 }
 
 const ChatManager = ({
@@ -29,9 +31,11 @@ const ChatManager = ({
   onChatMessagesLoaded,
   onError,
   isNewChat = false,
+  skipMessageLoading = false,
 }: ChatManagerProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [lastLoadedChatId, setLastLoadedChatId] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   const loadUserChats = useCallback(async () => {
     console.log("Loading user chats")
@@ -62,6 +66,13 @@ const ChatManager = ({
 
   const loadChatMessages = useCallback(
     async (chatId: string) => {
+      if (skipMessageLoading) {
+        console.log(
+          `Skipping message loading for chat: ${chatId} as requested by App component`,
+        )
+        return true
+      }
+
       console.log(`Loading messages for chat: ${chatId}`)
       setIsLoading(true)
 
@@ -80,15 +91,27 @@ const ChatManager = ({
           setLastLoadedChatId(chatId)
         }
         return true
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Error loading chat messages for ${chatId}:`, error)
+
+        if (
+          error.status === 404 ||
+          error.message?.includes("404") ||
+          (error.response && error.response.status === 404)
+        ) {
+          console.log("Chat not found (404), redirecting to home")
+          navigate("/", { replace: true })
+          return false
+        }
+
+        // For other errors, show the error message
         onError({ message: "Failed to load chat messages" })
         throw error
       } finally {
         setIsLoading(false)
       }
     },
-    [onChatMessagesLoaded, onError],
+    [onChatMessagesLoaded, onError, navigate, skipMessageLoading],
   )
 
   useEffect(() => {
@@ -98,7 +121,9 @@ const ChatManager = ({
   useEffect(() => {
     if (isNewChat) {
       console.log("ChatManager: In NEW CHAT mode, clearing messages")
-      onChatMessagesLoaded([])
+      if (!skipMessageLoading) {
+        onChatMessagesLoaded([])
+      }
       setLastLoadedChatId(null)
       return
     }
@@ -108,28 +133,31 @@ const ChatManager = ({
       return
     }
 
-    if (activeChatId === lastLoadedChatId) {
-      console.log(`ChatManager: Chat ${activeChatId} already loaded, skipping`)
+    if (skipMessageLoading) {
+      console.log(
+        `ChatManager: Skipping message loading for ${activeChatId} as requested`,
+      )
       return
     }
 
-    console.log(`ChatManager: Loading chat ${activeChatId}`)
-    loadChatMessages(activeChatId).catch((err) => {
-      console.error("Failed to load chat messages:", err)
-    })
+    if (activeChatId !== lastLoadedChatId) {
+      console.log(
+        `ChatManager: Loading chat ${activeChatId} (different from last loaded: ${lastLoadedChatId})`,
+      )
+      loadChatMessages(activeChatId).catch((err) => {
+        console.error("Failed to load chat messages:", err)
+      })
+    } else {
+      console.log(`ChatManager: Chat ${activeChatId} already loaded, skipping`)
+    }
   }, [
     activeChatId,
     isNewChat,
     lastLoadedChatId,
     loadChatMessages,
     onChatMessagesLoaded,
+    skipMessageLoading,
   ])
-
-  const formatTime = (timestamp: string): string => {
-    if (!timestamp) return ""
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
 
   return null
 }
