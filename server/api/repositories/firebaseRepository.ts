@@ -114,9 +114,7 @@ export class FirebaseRepository {
   public async createChat(
     sessionId: string,
     initialPrompt?: string,
-    initialResponse?: string,
-    promptTokenSize?: number,
-    responseTokenSize?: number,
+    response?: LlmResponse,
   ): Promise<string> {
     if (!this.ensureInitialized()) {
       throw new Error("Firebase not initialized")
@@ -132,15 +130,15 @@ export class FirebaseRepository {
         messages.push({
           type: MessageType.PROMPT,
           content: initialPrompt,
-          tokenSize: promptTokenSize || 0,
+          tokenSize: response?.promptTokenSize || 0,
           timestamp: now,
         })
 
-        if (initialResponse) {
+        if (response) {
           messages.push({
             type: MessageType.RESPONSE,
-            content: initialResponse,
-            tokenSize: responseTokenSize || 0,
+            content: response.text,
+            tokenSize: response.responseTokenSize || 0,
             timestamp: now + 1,
           })
         }

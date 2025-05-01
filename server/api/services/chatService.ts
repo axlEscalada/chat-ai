@@ -26,11 +26,13 @@ export class ChatServiceImpl implements ChatService {
         chatId = await firebaseRepository.createChat(
           sessionId,
           initialPrompt,
-          response.text,
+          response,
         )
       } else {
         chatId = await firebaseRepository.createChat(sessionId)
       }
+
+      console.log(`Response create chat ${response}`)
 
       return [chatId, response]
     } catch (error) {

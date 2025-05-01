@@ -1,10 +1,5 @@
 import { useState, useRef, useEffect, useCallback, FormEvent } from "react"
-import {
-  sendMessage,
-  checkServerHealth,
-  createChat,
-  LlmResponse
-} from "./api"
+import { sendMessage, checkServerHealth, createChat, LlmResponse } from "./api"
 import CodeFormatter from "./CodeFormatter"
 import { ChatManager, Chat, Message } from "./ChatManager"
 import "./App.css"
@@ -76,6 +71,13 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
+  // Format time for display in "tokens: <number> | <time>" format
+  const formatTime = (timestamp: string): string => {
+    if (!timestamp) return ""
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  }
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
@@ -86,7 +88,7 @@ function App() {
     const userMessage: Message = {
       text: input,
       sender: "user",
-      tokenSize: "0",
+      tokenSize: "calculating...", // Placeholder until we get the actual token size
       timestamp: new Date().toISOString(),
     }
     setMessages((prevMessages) => [...prevMessages, userMessage])
@@ -111,17 +113,42 @@ function App() {
 
         setActiveChatId(newChatData.chatId)
 
-        const llmResponse: LlmResponse = newChatData.response || { text: "I received your message, but couldn't formulate a response." }
-        
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          {
-            text: llmResponse.text,
-            tokenSize: llmResponse.responseTokenSize ? String(llmResponse.responseTokenSize) : "0",
-            sender: "ai",
-            timestamp: new Date().toISOString(),
-          },
-        ])
+        const llmResponse: LlmResponse = newChatData.response || {
+          text: "I received your message, but couldn't formulate a response.",
+        }
+
+        const promptTokenSize = llmResponse.promptTokenSize
+          ? String(llmResponse.promptTokenSize)
+          : "?"
+        const responseTokenSize = llmResponse.responseTokenSize
+          ? String(llmResponse.responseTokenSize)
+          : "?"
+
+        setMessages((prevMessages) => {
+          const updatedMessages = [...prevMessages]
+
+          if (updatedMessages.length > 0) {
+            for (let i = updatedMessages.length - 1; i >= 0; i--) {
+              if (updatedMessages[i].sender === "user") {
+                updatedMessages[i] = {
+                  ...updatedMessages[i],
+                  tokenSize: promptTokenSize,
+                }
+                break
+              }
+            }
+          }
+
+          return [
+            ...updatedMessages,
+            {
+              text: llmResponse.text,
+              tokenSize: responseTokenSize,
+              sender: "ai",
+              timestamp: new Date().toISOString(),
+            },
+          ]
+        })
       } else {
         console.log(
           `Sending message to existing chat ${activeChatId}:`,
@@ -130,19 +157,48 @@ function App() {
         const response = await sendMessage(currentInput, activeChatId)
 
         // Extract the LlmResponse from the API response
-        const llmResponse: LlmResponse = typeof response.response === 'object' 
-          ? response.response 
-          : { text: response.response || "I received your message, but couldn't formulate a response." }
+        const llmResponse: LlmResponse =
+          typeof response.response === "object"
+            ? response.response
+            : {
+                text:
+                  response.response ||
+                  "I received your message, but couldn't formulate a response.",
+              }
 
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          {
-            text: llmResponse.text,
-            tokenSize: llmResponse.responseTokenSize ? String(llmResponse.responseTokenSize) : "0",
-            sender: "ai",
-            timestamp: new Date().toISOString(),
-          },
-        ])
+        const promptTokenSize = llmResponse.promptTokenSize
+          ? String(llmResponse.promptTokenSize)
+          : "?"
+        const responseTokenSize = llmResponse.responseTokenSize
+          ? String(llmResponse.responseTokenSize)
+          : "?"
+
+        setMessages((prevMessages) => {
+          const updatedMessages = [...prevMessages]
+
+          if (updatedMessages.length > 0) {
+            for (let i = updatedMessages.length - 1; i >= 0; i--) {
+              if (updatedMessages[i].sender === "user") {
+                updatedMessages[i] = {
+                  ...updatedMessages[i],
+                  tokenSize: promptTokenSize,
+                }
+                break
+              }
+            }
+          }
+
+          // Add the AI response message
+          return [
+            ...updatedMessages,
+            {
+              text: llmResponse.text,
+              tokenSize: responseTokenSize,
+              sender: "ai",
+              timestamp: new Date().toISOString(),
+            },
+          ]
+        })
       }
     } catch (error) {
       console.error("Error in handleSubmit:", error)
@@ -150,18 +206,34 @@ function App() {
         error instanceof Error ? error.message : "Something went wrong"
       setError({ message: errorMessage })
 
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          text:
-            "Sorry, there was an error processing your request: " +
-            errorMessage,
-          tokenSize: "0",
-          sender: "system",
-          timestamp: new Date().toISOString(),
-          isError: true,
-        },
-      ])
+      setMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages]
+
+        if (updatedMessages.length > 0) {
+          for (let i = updatedMessages.length - 1; i >= 0; i--) {
+            if (updatedMessages[i].sender === "user") {
+              updatedMessages[i] = {
+                ...updatedMessages[i],
+                tokenSize: "?",
+              }
+              break
+            }
+          }
+        }
+
+        return [
+          ...updatedMessages,
+          {
+            text:
+              "Sorry, there was an error processing your request: " +
+              errorMessage,
+            tokenSize: "0",
+            sender: "system",
+            timestamp: new Date().toISOString(),
+            isError: true,
+          },
+        ]
+      })
     } finally {
       setIsLoading(false)
       setTimeout(() => {
@@ -199,7 +271,6 @@ function App() {
     (loadedChats: Chat[]) => {
       setChats(loadedChats)
 
-      // Check if current active chat still exists
       if (activeChatId && loadedChats.length > 0) {
         const chatExists = loadedChats.some((chat) => chat.id === activeChatId)
         if (!chatExists) {
@@ -217,12 +288,6 @@ function App() {
     setMessages(loadedMessages)
   }, [])
 
-  const formatTime = (timestamp: string): string => {
-    if (!timestamp) return ""
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
-
   const formatDate = (timestamp: number): string => {
     const date = new Date(timestamp)
     return date.toLocaleDateString([], { month: "short", day: "numeric" })
@@ -230,6 +295,7 @@ function App() {
 
   return (
     <div className="app">
+      {/* ChatManager component for handling chats */}
       <ChatManager
         activeChatId={activeChatId}
         onChatsLoaded={handleChatsLoaded}
@@ -306,6 +372,7 @@ function App() {
               <div className="message-content">
                 <CodeFormatter text={message.text} />
                 <span className="timestamp">
+                  {/* Display token count and time together in one string */}
                   tokens: {message.tokenSize} | {formatTime(message.timestamp)}
                 </span>
               </div>
