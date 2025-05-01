@@ -27,8 +27,11 @@ app.get("/", (_, res) => {
   res.send("Welcome to the AI API")
 })
 
-app.listen(port, () => {
-  console.log(`AI API server listening on port ${port}`)
-})
+// Keep this at the end of your server.ts
+if (process.env.NODE_ENV !== "production") {
+  app.listen(port, () => {
+    console.log(`AI API server listening on port ${port}`)
+  })
+}
 
 export default app
