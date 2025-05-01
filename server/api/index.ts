@@ -11,7 +11,7 @@ const port = 5000
 const corsOptions = {
   origin:
     process.env.NODE_ENV === "production"
-      ? "https://chat-ai.vercel.app"
+      ? "https://chat-ai-frontend-amber.vercel.app"
       : "http://localhost:3000",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
