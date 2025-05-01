@@ -29,8 +29,8 @@
     "yn": "^3.1.1"
   },
   "scripts": {
-    "start": "node dist/server.js",
-    "dev": "ts-node src/server.ts",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
     "build": "tsc",
     "watch": "tsc --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
