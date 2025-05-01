@@ -28,6 +28,15 @@ interface ChatResponse {
   [key: string]: any
 }
 
+export interface StreamEventHandler {
+  onChunk: (text: string) => void
+  onComplete: (metadata: {
+    promptTokenSize?: number
+    responseTokenSize?: number
+  }) => void
+  onError: (error: string) => void
+}
+
 const API_URL =
   process.env.NODE_ENV === "production"
     ? "https://chat-ai-server-axlescalada-axlescaladas-projects.vercel.app"
@@ -206,6 +215,111 @@ export const sendMessage = async (
     }
 
     throw error
+  }
+}
+
+export const sendStreamingMessage = async (
+  prompt: string,
+  chatId: string,
+  eventHandler: StreamEventHandler,
+): Promise<void> => {
+  try {
+    console.log(
+      `Sending streaming message to chat ${chatId}: "${prompt.substring(0, 30)}${prompt.length > 30 ? "..." : ""}"`,
+    )
+
+    if (!chatId) {
+      throw new Error("No chat ID provided to sendStreamingMessage")
+    }
+
+    // Use the streaming endpoint with POST method
+    const response = await fetch(`${API_URL}/chats/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chatId,
+        prompt,
+      }),
+    })
+
+    if (!response.ok || !response.body) {
+      throw new Error(`Server responded with status: ${response.status}`)
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ""
+
+    while (true) {
+      const { done, value } = await reader.read()
+
+      if (done) {
+        break
+      }
+
+      buffer += decoder.decode(value, { stream: true })
+
+      let boundaryIndex
+      while ((boundaryIndex = buffer.indexOf("\n\n")) !== -1) {
+        const message = buffer.substring(0, boundaryIndex)
+        buffer = buffer.substring(boundaryIndex + 2)
+
+        if (message.startsWith("data: ")) {
+          try {
+            const data = JSON.parse(message.substring(6))
+
+            switch (data.type) {
+              case "connection_established":
+                console.log("Streaming connection established")
+                break
+
+              case "content_chunk":
+                eventHandler.onChunk(data.text)
+                break
+
+              case "content_complete":
+                eventHandler.onComplete({
+                  promptTokenSize: data.promptTokenSize,
+                  responseTokenSize: data.responseTokenSize,
+                })
+                return // Exit the function on completion
+
+              case "error":
+                eventHandler.onError(data.message || "Unknown streaming error")
+                return // Exit the function on error
+
+              default:
+                console.warn("Unknown event type:", data.type)
+            }
+          } catch (parseError) {
+            console.error("Error parsing SSE message:", parseError, message)
+            eventHandler.onError("Failed to parse streaming message")
+            return
+          }
+        }
+      }
+    }
+
+    eventHandler.onError("Stream ended unexpectedly")
+  } catch (error: any) {
+    console.error("API Error during streaming message:", error)
+
+    if (error.message.includes("timed out")) {
+      eventHandler.onError(
+        "The request took too long to complete. Please try again or ask a simpler question.",
+      )
+    } else if (
+      error.message.includes("NetworkError") ||
+      error.message.includes("Failed to fetch")
+    ) {
+      eventHandler.onError(
+        "Network error. Please check your internet connection and try again.",
+      )
+    } else {
+      eventHandler.onError(error.message || "Unknown error occurred")
+    }
   }
 }
 

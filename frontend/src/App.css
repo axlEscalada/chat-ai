@@ -525,7 +525,6 @@ body {
   opacity: 0.6;
 }
 
-/* Token count popup styling */
 .token-popup {
   position: absolute;
   bottom: 64px;
@@ -542,7 +541,7 @@ body {
 }
 
 .token-popup::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 100%;
   right: 20px;
@@ -550,6 +549,86 @@ body {
   border-width: 5px;
   border-style: solid;
   border-color: var(--surface-color) transparent transparent transparent;
+}
+
+.streaming-toggle {
+  display: flex;
+  align-items: center;
+  margin-right: 15px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.streaming-toggle input {
+  margin-right: 6px;
+}
+
+.header-options {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.message.ai.streaming .message-content {
+  border-left: 3px solid var(--primary-color);
+  animation: pulse-border 1.5s infinite;
+}
+
+.streaming-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background-color: var(--primary-color);
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  vertical-align: middle;
+}
+
+.streaming-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  margin: 0 5px;
+  opacity: 0.5;
+  transition: all var(--transition-speed);
+}
+
+.streaming-indicator.active {
+  color: var(--primary-color);
+  opacity: 1;
+}
+
+/* Animation for streaming border */
+@keyframes pulse-border {
+  0%,
+  100% {
+    border-left-color: var(--primary-color);
+  }
+  50% {
+    border-left-color: var(--primary-light);
+  }
+}
+
+.message.ai .message-content pre {
+  max-width: 100%;
+  overflow-x: auto;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+.message.ai .message-content code {
+  font-family: "Source Code Pro", monospace;
+  font-size: 0.9em;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 2px 4px;
+  border-radius: 3px;
 }
 
 @media (max-width: 768px) {

@@ -2,18 +2,21 @@ import { useState, useEffect, useCallback } from "react"
 import { getUserChats, getChat } from "../api"
 import { useNavigate } from "react-router-dom"
 
-interface Chat {
-  id: string
-  title: string
-  updatedAt: number
-}
-
-interface Message {
+export interface Message {
   text: string
+  sender: "user" | "ai" | "system"
   tokenSize: string
-  sender: string
   timestamp: string
   isError?: boolean
+  isStreaming?: boolean
+}
+
+export interface Chat {
+  id: string
+  title: string
+  createdAt: number
+  updatedAt: number
+  messages: Message[]
 }
 
 interface ChatManagerProps {
@@ -163,4 +166,4 @@ const ChatManager = ({
 }
 
 export { ChatManager }
-export type { Chat, Message }
+export type { Chat as ChatType, Message as MessageType }

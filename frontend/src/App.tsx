@@ -6,7 +6,13 @@ import {
   Route,
   Navigate,
 } from "react-router-dom"
-import { sendMessage, checkServerHealth, createChat, LlmResponse } from "./api"
+import {
+  sendMessage,
+  checkServerHealth,
+  createChat,
+  sendStreamingMessage,
+  LlmResponse,
+} from "./api"
 import { ChatManager, Chat, Message } from "./components/ChatManager"
 import MessageList from "./components/chat/MessageList"
 import MessageForm from "./components/chat/MessageForm"
@@ -35,6 +41,25 @@ function App() {
   )
 }
 
+function createTypedMessage(
+  text: string, 
+  sender: "user" | "ai" | "system", 
+  tokenSize: string,
+  options?: { 
+    isError?: boolean; 
+    isStreaming?: boolean;
+    timestamp?: string;
+  }
+): Message {
+  return {
+    text,
+    sender,
+    tokenSize,
+    timestamp: options?.timestamp || new Date().toISOString(),
+    ...(options || {})
+  };
+}
+
 const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   const { chatId } = useParams<{ chatId?: string }>()
   const navigate = useNavigate()
@@ -47,6 +72,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
     "checking" | "connected" | "disconnected"
   >("checking")
   const [chats, setChats] = useState<Chat[]>([])
+  const [useStreaming, setUseStreaming] = useState<boolean>(true)
 
   const isInternalNavigation = useRef(false)
   const persistMessages = useRef<Message[]>([])
@@ -83,7 +109,6 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
     }
   }, [isNewChat])
 
-  // Update activeChatId when chatId parameter changes
   useEffect(() => {
     if (chatId && chatId !== activeChatId) {
       console.log("URL chatId changed, updating activeChatId:", chatId)
@@ -114,31 +139,163 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
     checkConnection()
   }, [])
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-
-    if (!input.trim()) return
-
-    setError(null)
-
-    const userMessage: Message = {
-      text: input,
-      sender: "user",
-      tokenSize: "calculating...",
-      timestamp: new Date().toISOString(),
+  const handleStreamingSubmit = async (currentInput: string) => {
+    if (!activeChatId) {
+      console.log(
+        "No active chat ID, creating a new chat first (non-streaming)",
+      )
+      return handleStandardSubmit(currentInput)
     }
 
-    setMessages((prevMessages) => {
-      const updatedMessages = [...prevMessages, userMessage]
-      persistMessages.current = updatedMessages
-      return updatedMessages
-    })
+    console.log(
+      `Sending streaming message to existing chat ${activeChatId}:`,
+      currentInput.substring(0, 30),
+    )
 
-    setIsLoading(true)
+    try {
+      const aiPlaceholder: Message = {
+        text: "",
+        tokenSize: "calculating...",
+        sender: "ai", // Explicitly typed
+        timestamp: new Date().toISOString(),
+        isStreaming: true,
+      }
 
-    const currentInput = input
-    setInput("")
+      setMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages, aiPlaceholder]
+        persistMessages.current = updatedMessages
+        return updatedMessages
+      })
 
+      setIsLoading(false)
+
+      await sendStreamingMessage(currentInput, activeChatId, {
+        onChunk: (text) => {
+          setMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages]
+            const lastAiIndex = updatedMessages.findIndex(
+              (msg, idx) => msg.sender === "ai" && msg.isStreaming === true,
+            )
+
+            if (lastAiIndex !== -1) {
+              updatedMessages[lastAiIndex] = {
+                ...updatedMessages[lastAiIndex],
+                text: updatedMessages[lastAiIndex].text + text,
+              }
+            }
+
+            persistMessages.current = updatedMessages
+            return updatedMessages
+          })
+        },
+
+        onComplete: (metadata) => {
+          setMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages]
+            
+            for (let i = updatedMessages.length - 2; i >= 0; i--) {
+              if (updatedMessages[i].sender === "user") {
+                updatedMessages[i] = {
+                  ...updatedMessages[i],
+                  tokenSize: metadata.promptTokenSize?.toString() || "?",
+                }
+                break
+              }
+            }
+            
+            const lastAiIndex = updatedMessages.findIndex(
+              (msg) => msg.sender === "ai" && msg.isStreaming === true,
+            )
+            
+            if (lastAiIndex !== -1) {
+              updatedMessages[lastAiIndex] = {
+                ...updatedMessages[lastAiIndex],
+                isStreaming: false,
+                tokenSize: metadata.responseTokenSize?.toString() || "?",
+              }
+            }
+            
+            persistMessages.current = updatedMessages
+            return updatedMessages
+          })
+          
+          setIsLoading(false)
+        },
+
+        onError: (errorMessage) => {
+          console.error("Streaming error:", errorMessage)
+
+          setMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages]
+
+            const lastAiIndex = updatedMessages.findIndex(
+              (msg) => msg.sender === "ai" && msg.isStreaming === true,
+            )
+
+            if (lastAiIndex !== -1) {
+              updatedMessages[lastAiIndex] = {
+                text: `Error: ${errorMessage}`,
+                tokenSize: "0",
+                sender: "system", // Explicitly typed
+                timestamp: new Date().toISOString(),
+                isError: true,
+              }
+            } else {
+              updatedMessages.push({
+                text: `Error: ${errorMessage}`,
+                tokenSize: "0",
+                sender: "system", // Explicitly typed
+                timestamp: new Date().toISOString(),
+                isError: true,
+              })
+            }
+
+            persistMessages.current = updatedMessages
+            return updatedMessages
+          })
+
+          setIsLoading(false)
+        },
+      })
+    } catch (error) {
+      console.error("Error in handleStreamingSubmit:", error)
+      const errorMsg =
+        error instanceof Error ? error.message : "Something went wrong"
+
+      setMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages]
+
+        const lastAiIndex = updatedMessages.findIndex(
+          (msg) => msg.sender === "ai" && msg.isStreaming === true,
+        )
+
+        if (lastAiIndex !== -1) {
+          updatedMessages[lastAiIndex] = {
+            text: `Sorry, there was an error processing your request: ${errorMsg}`,
+            tokenSize: "0",
+            sender: "system",
+            timestamp: new Date().toISOString(),
+            isError: true,
+          }
+        } else {
+          updatedMessages.push({
+            text: `Sorry, there was an error processing your request: ${errorMsg}`,
+            tokenSize: "0",
+            sender: "system",
+            timestamp: new Date().toISOString(),
+            isError: true,
+          })
+        }
+
+        persistMessages.current = updatedMessages
+        return updatedMessages
+      })
+
+      setIsLoading(false)
+    }
+  }
+
+  const handleStandardSubmit = async (currentInput: string) => {
     try {
       if (!activeChatId) {
         console.log(
@@ -170,7 +327,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
           : "?"
 
         setMessages((prevMessages) => {
-          const updatedMessages = [...prevMessages]
+          const updatedMessages = [...prevMessages];
 
           if (updatedMessages.length > 0) {
             for (let i = updatedMessages.length - 1; i >= 0; i--) {
@@ -178,25 +335,23 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
                 updatedMessages[i] = {
                   ...updatedMessages[i],
                   tokenSize: promptTokenSize,
-                }
-                break
+                };
+                break;
               }
             }
           }
 
-          const newMessages = [
-            ...updatedMessages,
-            {
-              text: llmResponse.text,
-              tokenSize: responseTokenSize,
-              sender: "ai",
-              timestamp: new Date().toISOString(),
-            },
-          ]
+          const aiMessage = createTypedMessage(
+            llmResponse.text,
+            "ai",
+            responseTokenSize
+          );
 
-          persistMessages.current = newMessages
-
-          return newMessages
+          const newMessages: Message[] = [...updatedMessages, aiMessage];
+          
+          persistMessages.current = newMessages;
+          
+          return newMessages;
         })
 
         isInternalNavigation.current = true
@@ -229,7 +384,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
           : "?"
 
         setMessages((prevMessages) => {
-          const updatedMessages = [...prevMessages]
+          const updatedMessages = [...prevMessages];
 
           if (updatedMessages.length > 0) {
             for (let i = updatedMessages.length - 1; i >= 0; i--) {
@@ -237,35 +392,33 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
                 updatedMessages[i] = {
                   ...updatedMessages[i],
                   tokenSize: promptTokenSize,
-                }
-                break
+                };
+                break;
               }
             }
           }
 
-          const newMessages = [
-            ...updatedMessages,
-            {
-              text: llmResponse.text,
-              tokenSize: responseTokenSize,
-              sender: "ai",
-              timestamp: new Date().toISOString(),
-            },
-          ]
-
-          persistMessages.current = newMessages
-
-          return newMessages
+          const aiMessage = createTypedMessage(
+            llmResponse.text,
+            "ai",
+            responseTokenSize
+          );
+          
+          const newMessages: Message[] = [...updatedMessages, aiMessage];
+          
+          persistMessages.current = newMessages;
+          
+          return newMessages;
         })
       }
     } catch (error) {
-      console.error("Error in handleSubmit:", error)
+      console.error("Error in handleStandardSubmit:", error)
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong"
       setError({ message: errorMessage })
 
       setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages]
+        const updatedMessages = [...prevMessages];
 
         if (updatedMessages.length > 0) {
           for (let i = updatedMessages.length - 1; i >= 0; i--) {
@@ -273,32 +426,63 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
               updatedMessages[i] = {
                 ...updatedMessages[i],
                 tokenSize: "?",
-              }
-              break
+              };
+              break;
             }
           }
         }
 
-        const newMessages = [
-          ...updatedMessages,
-          {
-            text:
-              "Sorry, there was an error processing your request: " +
-              errorMessage,
-            tokenSize: "0",
-            sender: "system",
-            timestamp: new Date().toISOString(),
-            isError: true,
-          },
-        ]
-
-        persistMessages.current = newMessages
-
-        return newMessages
+        const errorMsg = createTypedMessage(
+          "Sorry, there was an error processing your request: " + errorMessage,
+          "system",
+          "0",
+          { isError: true }
+        );
+        
+        const newMessages: Message[] = [...updatedMessages, errorMsg];
+        
+        persistMessages.current = newMessages;
+        
+        return newMessages;
       })
 
       isCreatingChat.current = false
-    } finally {
+    }
+  }
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    if (!input.trim()) return
+
+    setError(null)
+
+    const userMessage: Message = {
+      text: input,
+      sender: "user",
+      tokenSize: "calculating...",
+      timestamp: new Date().toISOString(),
+    }
+
+    setMessages((prevMessages) => {
+      const updatedMessages = [...prevMessages, userMessage]
+      persistMessages.current = updatedMessages
+      return updatedMessages
+    })
+
+    setIsLoading(true)
+
+    const currentInput = input
+    setInput("")
+
+    try {
+      if (useStreaming) {
+        await handleStreamingSubmit(currentInput)
+      } else {
+        await handleStandardSubmit(currentInput)
+      }
+    } catch (error) {
+      console.error("Error in handleSubmit:", error)
       setIsLoading(false)
     }
   }
@@ -389,6 +573,10 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
     setIsChatSidebarOpen(!isChatSidebarOpen)
   }
 
+  const toggleStreaming = () => {
+    setUseStreaming(!useStreaming)
+  }
+
   return (
     <div className="app">
       <ChatManager
@@ -410,7 +598,12 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
       />
 
       <div className="chat-main">
-        <Header onMenuClick={toggleSidebar} backendStatus={backendStatus} />
+        <Header
+          onMenuClick={toggleSidebar}
+          backendStatus={backendStatus}
+          useStreaming={useStreaming}
+          onToggleStreaming={toggleStreaming}
+        />
 
         <MessageList messages={messages} isLoading={isLoading} />
 
@@ -427,6 +620,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
           isLoading={isLoading}
           backendStatus={backendStatus}
           onSubmit={handleSubmit}
+          useStreaming={useStreaming}
         />
       </div>
     </div>

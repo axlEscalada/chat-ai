@@ -1,12 +1,23 @@
 import { firebaseRepository } from "../repositories/firebaseRepository"
 import { LlmResponse, llmService } from "./llmService"
 
+export interface StreamCallbacks {
+  onChunk: (text: string) => void
+  onComplete: (response: LlmResponse) => void
+  onError: (error: any) => void
+}
+
 export interface ChatService {
   createChat(
     sessionId: string,
     initialPrompt?: string,
   ): Promise<[string, LlmResponse]>
   sendMessage(chatId: string, prompt: string): Promise<LlmResponse>
+  streamMessage(
+    chatId: string,
+    prompt: string,
+    callbacks: StreamCallbacks,
+  ): Promise<void>
   getChat(chatId: string): Promise<any>
   getUserChats(sessionId: string): Promise<any[]>
   countPromptTokens(prompt: string): Promise<number>
@@ -55,6 +66,56 @@ export class ChatServiceImpl implements ChatService {
     } catch (error) {
       console.error("Error sending message:", error)
       throw error
+    }
+  }
+
+  async streamMessage(
+    chatId: string,
+    prompt: string,
+    callbacks: StreamCallbacks,
+  ): Promise<void> {
+    try {
+      let accumulatedText = ""
+
+      await llmService.generateStreamingResponse(
+        prompt,
+        (chunk) => {
+          accumulatedText += chunk
+
+          callbacks.onChunk(chunk)
+        },
+
+        async (finalResponse) => {
+          try {
+            finalResponse.text = accumulatedText
+
+            await firebaseRepository.addMessagePair(
+              chatId,
+              prompt,
+              finalResponse,
+            )
+
+            console.log(`Streaming message pair added to chat ${chatId}`)
+            console.log(`Prompt: ${prompt}`)
+            console.log(
+              `Final response: ${finalResponse.text.substring(0, 100)}...`,
+            )
+
+            callbacks.onComplete(finalResponse)
+          } catch (error) {
+            console.error("Error saving streamed message:", error)
+            callbacks.onError(error)
+          }
+        },
+
+        (error: Error) => {
+          console.error("Error in streaming generation:", error)
+          callbacks.onError(error)
+        },
+      )
+    } catch (error) {
+      console.error("Error setting up streaming:", error)
+      callbacks.onError(error)
     }
   }
 

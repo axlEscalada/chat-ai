@@ -1,6 +1,14 @@
 import React, { useRef, useEffect } from "react"
 import MessageItem from "./MessageItem"
-import { Message } from "../ChatManager"
+
+interface Message {
+  text: string
+  sender: "user" | "ai" | "system"
+  tokenSize: string
+  timestamp: string
+  isError?: boolean
+  isStreaming?: boolean
+}
 
 interface MessageListProps {
   messages: Message[]
@@ -36,10 +44,11 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
           tokenSize={message.tokenSize}
           timestamp={message.timestamp}
           isError={message.isError}
+          isStreaming={message.isStreaming}
         />
       ))}
 
-      {isLoading && (
+      {isLoading && !messages.some(msg => msg.isStreaming) && (
         <div className="message ai">
           <div className="message-content loading">
             <div className="typing-indicator">

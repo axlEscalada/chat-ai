@@ -41,6 +41,79 @@ export class ChatController {
     }
   }
 
+  async streamMessage(req: Request, res: Response): Promise<void> {
+    try {
+      const { chatId, prompt } = req.body
+
+      if (!chatId || !prompt) {
+        res.status(400).json({ error: "Chat ID and prompt are required" })
+        return
+      }
+
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      })
+
+      res.write(
+        `data: ${JSON.stringify({
+          type: "connection_established",
+        })}\n\n`,
+      )
+
+      await chatService.streamMessage(chatId, prompt, {
+        onChunk: (text) => {
+          res.write(
+            `data: ${JSON.stringify({
+              type: "content_chunk",
+              text,
+            })}\n\n`,
+          )
+        },
+
+        onComplete: (response) => {
+          res.write(
+            `data: ${JSON.stringify({
+              type: "content_complete",
+              promptTokenSize: response.promptTokenSize,
+              responseTokenSize: response.responseTokenSize,
+            })}\n\n`,
+          )
+
+          res.end()
+        },
+
+        onError: (error) => {
+          console.error("Streaming error:", error)
+
+          res.write(
+            `data: ${JSON.stringify({
+              type: "error",
+              message: error.message || "Unknown error occurred",
+            })}\n\n`,
+          )
+
+          res.end()
+        },
+      })
+    } catch (error) {
+      console.error("Error in streamMessage controller:", error)
+
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to setup streaming" })
+      } else {
+        res.write(
+          `data: ${JSON.stringify({
+            type: "error",
+            message: "Error processing stream",
+          })}\n\n`,
+        )
+        res.end()
+      }
+    }
+  }
+
   async getChat(req: Request, res: Response): Promise<void> {
     try {
       const { chatId } = req.params

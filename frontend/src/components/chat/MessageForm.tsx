@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, FormEvent, useState } from "react"
 import { getTokenCount } from "../../api"
 import { BiHash } from "react-icons/bi"
+import { BsLightningChargeFill } from "react-icons/bs"
 
 interface MessageFormProps {
   input: string
@@ -8,6 +9,7 @@ interface MessageFormProps {
   isLoading: boolean
   backendStatus: "checking" | "connected" | "disconnected"
   onSubmit: (e: FormEvent<HTMLFormElement>) => Promise<void>
+  useStreaming?: boolean
 }
 
 const MessageForm: React.FC<MessageFormProps> = ({
@@ -16,6 +18,7 @@ const MessageForm: React.FC<MessageFormProps> = ({
   isLoading,
   backendStatus,
   onSubmit,
+  useStreaming = true,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null)
   const [showTokenCount, setShowTokenCount] = useState(false)
@@ -93,6 +96,15 @@ const MessageForm: React.FC<MessageFormProps> = ({
       {showTokenCount && (
         <div className="token-popup">
           {isCountingTokens ? "Counting..." : `Tokens: ${tokenCount}`}
+        </div>
+      )}
+
+      {useStreaming !== undefined && (
+        <div
+          className={`streaming-indicator ${useStreaming ? "active" : ""}`}
+          title={useStreaming ? "Streaming enabled" : "Streaming disabled"}
+        >
+          <BsLightningChargeFill size={18} />
         </div>
       )}
 
