@@ -21,8 +21,10 @@ interface ChatResponse {
   [key: string]: any
 }
 
-const API_URL =
-  process.env.NODE_ENV === "production" ? "" : "http://localhost:3001"
+const API_URL = process.env.NODE_ENV === 'production'
+  ? '/api'
+  : 'http://localhost:3001'
+
 const API_TIMEOUT = 60000 // 60 seconds timeout
 
 const fetchWithTimeout = async (
