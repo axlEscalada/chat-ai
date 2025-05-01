@@ -22,7 +22,9 @@ interface ChatResponse {
 }
 
 const API_URL =
-  process.env.NODE_ENV === "production" ? "" : "http://localhost:3001"
+  process.env.NODE_ENV === "production"
+    ? "https://chat-ai-server-38lwrrr1i-axlescaladas-projects.vercel.app"
+    : "http://localhost:3001"
 
 const API_TIMEOUT = 60000 // 60 seconds timeout
 
