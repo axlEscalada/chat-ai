@@ -107,7 +107,6 @@ const ChatManager = ({
           return false
         }
 
-        // For other errors, show the error message
         onError({ message: "Failed to load chat messages" })
         throw error
       } finally {
@@ -123,12 +122,10 @@ const ChatManager = ({
 
   useEffect(() => {
     if (isNewChat) {
-      console.log("ChatManager: In NEW CHAT mode, clearing messages")
-      if (!skipMessageLoading) {
-        onChatMessagesLoaded([])
-      }
-      setLastLoadedChatId(null)
-      return
+      console.log("ChatManager: In NEW CHAT mode, clearing messages and ignoring any activeChatId");
+      onChatMessagesLoaded([]);
+      setLastLoadedChatId(null);
+      return;
     }
 
     if (!activeChatId) {

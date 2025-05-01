@@ -8,12 +8,7 @@ interface HeaderProps {
   onToggleStreaming?: () => void
 }
 
-const Header: React.FC<HeaderProps> = ({
-  onMenuClick,
-  backendStatus,
-  useStreaming = true,
-  onToggleStreaming,
-}) => {
+const Header: React.FC<HeaderProps> = ({ onMenuClick, backendStatus }) => {
   return (
     <div className="header">
       <div className="title-area">
@@ -23,19 +18,6 @@ const Header: React.FC<HeaderProps> = ({
         <h1>AI Chat</h1>
         <StatusIndicator status={backendStatus} />
       </div>
-
-      {onToggleStreaming && (
-        <div className="header-options">
-          <label className="streaming-toggle">
-            <input
-              type="checkbox"
-              checked={useStreaming}
-              onChange={onToggleStreaming}
-            />
-            <span className="toggle-label">Streaming</span>
-          </label>
-        </div>
-      )}
     </div>
   )
 }

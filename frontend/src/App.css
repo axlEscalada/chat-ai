@@ -445,12 +445,16 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   z-index: 10;
+  align-items: center;
+  gap: 12px;
 }
 
 .input-container {
   flex: 1;
   position: relative;
   cursor: text;
+  order: 2;
+  margin: 0;
 }
 
 .input-form input {
@@ -486,11 +490,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 12px;
   cursor: pointer;
   transition: all var(--transition-speed);
   position: relative;
   z-index: 10;
+  order: 4;
+  margin: 0;
 }
 
 .input-form button svg {
@@ -507,11 +512,39 @@ body {
   cursor: not-allowed;
 }
 
+.streaming-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--surface-color) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: var(--text-secondary);
+  transition: all var(--transition-speed);
+  cursor: pointer;
+  order: 1;
+  margin: 0;
+}
+
+.streaming-indicator:hover {
+  border-color: var(--primary-color);
+  transform: scale(1.05);
+}
+
+.streaming-indicator.active {
+  background-color: rgba(67, 181, 129, 0.2);
+  color: var(--success-color);
+  border-color: var(--success-color);
+}
+
 .token-button {
   background-color: var(--surface-color) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  margin-right: 8px;
   transition: all var(--transition-speed);
+  order: 3;
+  margin: 0;
 }
 
 .token-button:hover:not(:disabled) {
@@ -603,7 +636,14 @@ body {
   opacity: 1;
 }
 
-/* Animation for streaming border */
+@media (max-width: 768px) {
+  .streaming-indicator {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+  }
+}
+
 @keyframes pulse-border {
   0%,
   100% {

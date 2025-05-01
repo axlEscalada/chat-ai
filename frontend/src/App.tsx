@@ -26,38 +26,38 @@ interface ApiError {
   shownInChat?: boolean
 }
 
+type BackendStatus = "checking" | "connected" | "disconnected"
+
 function App() {
   return (
     <Routes>
       <Route path="/" element={<ChatInterface isNewChat={true} />} />
-
       <Route
         path="/chat/:chatId"
         element={<ChatInterface isNewChat={false} />}
       />
-
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
 
 function createTypedMessage(
-  text: string, 
-  sender: "user" | "ai" | "system", 
+  text: string,
+  sender: "user" | "ai" | "system",
   tokenSize: string,
-  options?: { 
-    isError?: boolean; 
-    isStreaming?: boolean;
-    timestamp?: string;
-  }
+  options?: {
+    isError?: boolean
+    isStreaming?: boolean
+    timestamp?: string
+  },
 ): Message {
   return {
     text,
     sender,
     tokenSize,
     timestamp: options?.timestamp || new Date().toISOString(),
-    ...(options || {})
-  };
+    ...(options || {}),
+  }
 }
 
 const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
@@ -68,11 +68,13 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<ApiError | null>(null)
-  const [backendStatus, setBackendStatus] = useState<
-    "checking" | "connected" | "disconnected"
-  >("checking")
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>("checking")
   const [chats, setChats] = useState<Chat[]>([])
-  const [useStreaming, setUseStreaming] = useState<boolean>(true)
+  const [useStreaming, setUseStreaming] = useState<boolean>(false)
+  const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(false)
+  const [forceNewChat, setForceNewChat] = useState(isNewChat)
+  const [isCreatingNewChat, setIsCreatingNewChat] = useState(isNewChat);
+  const [isInNewChatMode, setIsInNewChatMode] = useState(isNewChat);
 
   const isInternalNavigation = useRef(false)
   const persistMessages = useRef<Message[]>([])
@@ -83,7 +85,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
     if (isNewChat) {
       console.log("NEW CHAT ROUTE - clearing localStorage")
       localStorage.removeItem("activeChatId")
-      persistMessages.current = [] // Clear persisted messages for new chat
+      persistMessages.current = []
       return null
     }
 
@@ -94,8 +96,6 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
 
     return null
   })
-
-  const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(false)
 
   useEffect(() => {
     if (persistMessages.current.length > 0 && isInternalNavigation.current) {
@@ -110,11 +110,11 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   }, [isNewChat])
 
   useEffect(() => {
-    if (chatId && chatId !== activeChatId) {
-      console.log("URL chatId changed, updating activeChatId:", chatId)
-      setActiveChatId(chatId)
+    if (chatId && chatId !== activeChatId && !isInNewChatMode) {
+      console.log("URL chatId changed, updating activeChatId:", chatId);
+      setActiveChatId(chatId);
     }
-  }, [chatId, activeChatId])
+  }, [chatId, activeChatId, isInNewChatMode]);
 
   useEffect(() => {
     console.log("activeChatId changed to:", activeChatId)
@@ -139,6 +139,62 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
     checkConnection()
   }, [])
 
+  useEffect(() => {
+    if (activeChatId) {
+      setForceNewChat(false)
+    }
+  }, [activeChatId])
+
+  useEffect(() => {
+    if (activeChatId && !isNewChat) {
+      setIsCreatingNewChat(false);
+    }
+  }, [activeChatId, isNewChat]);
+
+  const addMessageToState = (newMessage: Message) => {
+    setMessages((prevMessages) => {
+      const updatedMessages = [...prevMessages, newMessage]
+      persistMessages.current = updatedMessages
+      return updatedMessages
+    })
+  }
+
+  const updateMessageInState = (
+    predicate: (msg: Message) => boolean,
+    updater: (msg: Message) => Message,
+  ) => {
+    setMessages((prevMessages) => {
+      const updatedMessages = [...prevMessages]
+      const index = updatedMessages.findIndex(predicate)
+
+      if (index !== -1) {
+        updatedMessages[index] = updater(updatedMessages[index])
+      }
+
+      persistMessages.current = updatedMessages
+      return updatedMessages
+    })
+  }
+
+  const updateLastUserMessageTokenSize = (tokenSize: string) => {
+    setMessages((prevMessages) => {
+      const updatedMessages = [...prevMessages]
+
+      for (let i = updatedMessages.length - 1; i >= 0; i--) {
+        if (updatedMessages[i].sender === "user") {
+          updatedMessages[i] = {
+            ...updatedMessages[i],
+            tokenSize,
+          }
+          break
+        }
+      }
+
+      persistMessages.current = updatedMessages
+      return updatedMessages
+    })
+  }
+
   const handleStreamingSubmit = async (currentInput: string) => {
     if (!activeChatId) {
       console.log(
@@ -156,103 +212,54 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
       const aiPlaceholder: Message = {
         text: "",
         tokenSize: "calculating...",
-        sender: "ai", // Explicitly typed
+        sender: "ai",
         timestamp: new Date().toISOString(),
         isStreaming: true,
       }
-
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages, aiPlaceholder]
-        persistMessages.current = updatedMessages
-        return updatedMessages
-      })
-
+      addMessageToState(aiPlaceholder)
       setIsLoading(false)
 
       await sendStreamingMessage(currentInput, activeChatId, {
         onChunk: (text) => {
-          setMessages((prevMessages) => {
-            const updatedMessages = [...prevMessages]
-            const lastAiIndex = updatedMessages.findIndex(
-              (msg, idx) => msg.sender === "ai" && msg.isStreaming === true,
-            )
-
-            if (lastAiIndex !== -1) {
-              updatedMessages[lastAiIndex] = {
-                ...updatedMessages[lastAiIndex],
-                text: updatedMessages[lastAiIndex].text + text,
-              }
-            }
-
-            persistMessages.current = updatedMessages
-            return updatedMessages
-          })
+          updateMessageInState(
+            (msg) => msg.sender === "ai" && msg.isStreaming === true,
+            (msg) => ({
+              ...msg,
+              text: msg.text + text,
+            }),
+          )
         },
 
         onComplete: (metadata) => {
-          setMessages((prevMessages) => {
-            const updatedMessages = [...prevMessages]
-            
-            for (let i = updatedMessages.length - 2; i >= 0; i--) {
-              if (updatedMessages[i].sender === "user") {
-                updatedMessages[i] = {
-                  ...updatedMessages[i],
-                  tokenSize: metadata.promptTokenSize?.toString() || "?",
-                }
-                break
-              }
-            }
-            
-            const lastAiIndex = updatedMessages.findIndex(
-              (msg) => msg.sender === "ai" && msg.isStreaming === true,
-            )
-            
-            if (lastAiIndex !== -1) {
-              updatedMessages[lastAiIndex] = {
-                ...updatedMessages[lastAiIndex],
-                isStreaming: false,
-                tokenSize: metadata.responseTokenSize?.toString() || "?",
-              }
-            }
-            
-            persistMessages.current = updatedMessages
-            return updatedMessages
-          })
-          
+          updateLastUserMessageTokenSize(
+            metadata.promptTokenSize?.toString() || "?",
+          )
+
+          updateMessageInState(
+            (msg) => msg.sender === "ai" && msg.isStreaming === true,
+            (msg) => ({
+              ...msg,
+              isStreaming: false,
+              tokenSize: metadata.responseTokenSize?.toString() || "?",
+            }),
+          )
+
           setIsLoading(false)
         },
 
         onError: (errorMessage) => {
           console.error("Streaming error:", errorMessage)
 
-          setMessages((prevMessages) => {
-            const updatedMessages = [...prevMessages]
-
-            const lastAiIndex = updatedMessages.findIndex(
-              (msg) => msg.sender === "ai" && msg.isStreaming === true,
-            )
-
-            if (lastAiIndex !== -1) {
-              updatedMessages[lastAiIndex] = {
-                text: `Error: ${errorMessage}`,
-                tokenSize: "0",
-                sender: "system", // Explicitly typed
-                timestamp: new Date().toISOString(),
-                isError: true,
-              }
-            } else {
-              updatedMessages.push({
-                text: `Error: ${errorMessage}`,
-                tokenSize: "0",
-                sender: "system", // Explicitly typed
-                timestamp: new Date().toISOString(),
-                isError: true,
-              })
-            }
-
-            persistMessages.current = updatedMessages
-            return updatedMessages
-          })
+          updateMessageInState(
+            (msg) => msg.sender === "ai" && msg.isStreaming === true,
+            () => ({
+              text: `Error: ${errorMessage}`,
+              tokenSize: "0",
+              sender: "system",
+              timestamp: new Date().toISOString(),
+              isError: true,
+            }),
+          )
 
           setIsLoading(false)
         },
@@ -262,34 +269,16 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
       const errorMsg =
         error instanceof Error ? error.message : "Something went wrong"
 
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages]
-
-        const lastAiIndex = updatedMessages.findIndex(
-          (msg) => msg.sender === "ai" && msg.isStreaming === true,
-        )
-
-        if (lastAiIndex !== -1) {
-          updatedMessages[lastAiIndex] = {
-            text: `Sorry, there was an error processing your request: ${errorMsg}`,
-            tokenSize: "0",
-            sender: "system",
-            timestamp: new Date().toISOString(),
-            isError: true,
-          }
-        } else {
-          updatedMessages.push({
-            text: `Sorry, there was an error processing your request: ${errorMsg}`,
-            tokenSize: "0",
-            sender: "system",
-            timestamp: new Date().toISOString(),
-            isError: true,
-          })
-        }
-
-        persistMessages.current = updatedMessages
-        return updatedMessages
-      })
+      updateMessageInState(
+        (msg) => msg.sender === "ai" && msg.isStreaming === true,
+        () => ({
+          text: `Sorry, there was an error processing your request: ${errorMsg}`,
+          tokenSize: "0",
+          sender: "system",
+          timestamp: new Date().toISOString(),
+          isError: true,
+        }),
+      )
 
       setIsLoading(false)
     }
@@ -302,7 +291,6 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
           "Creating a new chat with message:",
           currentInput.substring(0, 30),
         )
-
         isCreatingChat.current = true
 
         const newChatData = await createChat(currentInput)
@@ -312,7 +300,6 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
         }
 
         console.log("New chat created with ID:", newChatData.chatId)
-
         setActiveChatId(newChatData.chatId)
 
         const llmResponse: LlmResponse = newChatData.response || {
@@ -326,38 +313,17 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
           ? String(llmResponse.responseTokenSize)
           : "?"
 
-        setMessages((prevMessages) => {
-          const updatedMessages = [...prevMessages];
+        updateLastUserMessageTokenSize(promptTokenSize)
 
-          if (updatedMessages.length > 0) {
-            for (let i = updatedMessages.length - 1; i >= 0; i--) {
-              if (updatedMessages[i].sender === "user") {
-                updatedMessages[i] = {
-                  ...updatedMessages[i],
-                  tokenSize: promptTokenSize,
-                };
-                break;
-              }
-            }
-          }
-
-          const aiMessage = createTypedMessage(
-            llmResponse.text,
-            "ai",
-            responseTokenSize
-          );
-
-          const newMessages: Message[] = [...updatedMessages, aiMessage];
-          
-          persistMessages.current = newMessages;
-          
-          return newMessages;
-        })
+        const aiMessage = createTypedMessage(
+          llmResponse.text,
+          "ai",
+          responseTokenSize,
+        )
+        addMessageToState(aiMessage)
 
         isInternalNavigation.current = true
-
         navigate(`/chat/${newChatData.chatId}`, { replace: true })
-
         isCreatingChat.current = false
       } else {
         console.log(
@@ -383,70 +349,34 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
           ? String(llmResponse.responseTokenSize)
           : "?"
 
-        setMessages((prevMessages) => {
-          const updatedMessages = [...prevMessages];
+        updateLastUserMessageTokenSize(promptTokenSize)
 
-          if (updatedMessages.length > 0) {
-            for (let i = updatedMessages.length - 1; i >= 0; i--) {
-              if (updatedMessages[i].sender === "user") {
-                updatedMessages[i] = {
-                  ...updatedMessages[i],
-                  tokenSize: promptTokenSize,
-                };
-                break;
-              }
-            }
-          }
-
-          const aiMessage = createTypedMessage(
-            llmResponse.text,
-            "ai",
-            responseTokenSize
-          );
-          
-          const newMessages: Message[] = [...updatedMessages, aiMessage];
-          
-          persistMessages.current = newMessages;
-          
-          return newMessages;
-        })
+        const aiMessage = createTypedMessage(
+          llmResponse.text,
+          "ai",
+          responseTokenSize,
+        )
+        addMessageToState(aiMessage)
       }
+      setIsLoading(false)
     } catch (error) {
       console.error("Error in handleStandardSubmit:", error)
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong"
       setError({ message: errorMessage })
 
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages];
+      updateLastUserMessageTokenSize("?")
 
-        if (updatedMessages.length > 0) {
-          for (let i = updatedMessages.length - 1; i >= 0; i--) {
-            if (updatedMessages[i].sender === "user") {
-              updatedMessages[i] = {
-                ...updatedMessages[i],
-                tokenSize: "?",
-              };
-              break;
-            }
-          }
-        }
-
-        const errorMsg = createTypedMessage(
-          "Sorry, there was an error processing your request: " + errorMessage,
-          "system",
-          "0",
-          { isError: true }
-        );
-        
-        const newMessages: Message[] = [...updatedMessages, errorMsg];
-        
-        persistMessages.current = newMessages;
-        
-        return newMessages;
-      })
+      const errorMsg = createTypedMessage(
+        "Sorry, there was an error processing your request: " + errorMessage,
+        "system",
+        "0",
+        { isError: true },
+      )
+      addMessageToState(errorMsg)
 
       isCreatingChat.current = false
+      setIsLoading(false)
     }
   }
 
@@ -463,12 +393,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
       tokenSize: "calculating...",
       timestamp: new Date().toISOString(),
     }
-
-    setMessages((prevMessages) => {
-      const updatedMessages = [...prevMessages, userMessage]
-      persistMessages.current = updatedMessages
-      return updatedMessages
-    })
+    addMessageToState(userMessage)
 
     setIsLoading(true)
 
@@ -476,6 +401,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
     setInput("")
 
     try {
+      console.log(`Is calling with streaming ${useStreaming}`)
       if (useStreaming) {
         await handleStreamingSubmit(currentInput)
       } else {
@@ -488,36 +414,38 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   }
 
   const handleNewChat = useCallback(() => {
-    console.log("Starting new chat - navigating to root")
-
-    setMessages([])
-
-    persistMessages.current = []
-
-    setActiveChatId(null)
-
-    navigate("/", { replace: true })
-  }, [navigate])
+    console.log("Starting new chat - entering new chat mode");
+    
+    setMessages([]);
+    persistMessages.current = [];
+    
+    localStorage.removeItem("activeChatId");
+    setActiveChatId(null);
+    
+    setIsInNewChatMode(true);
+    
+    navigate("/", { replace: true });
+  }, [navigate]);
 
   const handleSelectChat = useCallback(
     (chatId: string) => {
       if (activeChatId === chatId) {
-        console.log("Already on this chat, no need to navigate")
-        return
+        console.log("Already on this chat, no need to navigate");
+        return;
       }
 
-      console.log("Selecting chat:", chatId)
-
-      persistMessages.current = []
-
-      setMessages([])
-
-      isSwitchingChat.current = true
-
-      navigate(`/chat/${chatId}`, { replace: true })
+      console.log("Selecting chat:", chatId);
+      
+      setIsInNewChatMode(false);
+      
+      setMessages([]);
+      persistMessages.current = [];
+      isSwitchingChat.current = true;
+      
+      navigate(`/chat/${chatId}`, { replace: true });
     },
-    [activeChatId, navigate],
-  )
+    [activeChatId, navigate]
+  );
 
   const handleChatsLoaded = useCallback(
     (loadedChats: Chat[]) => {
@@ -537,37 +465,54 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
     [activeChatId, navigate],
   )
 
-  const handleChatMessagesLoaded = useCallback((loadedMessages: Message[]) => {
-    if (isCreatingChat.current) {
-      console.log(
-        "In the middle of creating a chat, not loading messages from server",
-      )
-      return
-    }
+  const handleChatMessagesLoaded = useCallback(
+    (loadedMessages: Message[]) => {
+      if (isInNewChatMode) {
+        console.log("In new chat mode, ignoring loaded messages");
+        return;
+      }
 
-    if (persistMessages.current.length > 0 && isInternalNavigation.current) {
-      console.log(
-        "Using persisted messages instead of loading from server (internal nav)",
-      )
-      return
-    }
+      console.log("handleChatMessagesLoaded called with:", {
+        messages: loadedMessages.length,
+        isCreatingChat: isCreatingChat.current,
+        isSwitchingChat: isSwitchingChat.current,
+        persistedMessages: persistMessages.current.length,
+        isInternalNav: isInternalNavigation.current,
+        activeChatId,
+      })
 
-    if (isSwitchingChat.current) {
-      console.log("Switching chats, loading messages from server")
-      setMessages(loadedMessages)
-      persistMessages.current = loadedMessages
-      isSwitchingChat.current = false
-      return
-    }
+      if (isCreatingChat.current) {
+        console.log(
+          "In the middle of creating a chat, not loading messages from server",
+        )
+        return
+      }
 
-    if (persistMessages.current.length === 0) {
-      console.log("No persisted messages, loading from server")
-      setMessages(loadedMessages)
-      persistMessages.current = loadedMessages
-    } else {
-      console.log("Using persisted messages instead of loading from server")
-    }
-  }, [])
+      if (persistMessages.current.length > 0 && isInternalNavigation.current) {
+        console.log(
+          "Using persisted messages instead of loading from server (internal nav)",
+        )
+        return
+      }
+
+      if (isSwitchingChat.current) {
+        console.log("Switching chats, loading messages from server")
+        setMessages(loadedMessages)
+        persistMessages.current = loadedMessages
+        isSwitchingChat.current = false 
+        return
+      }
+
+      if (persistMessages.current.length === 0) {
+        console.log("No persisted messages, loading from server")
+        setMessages(loadedMessages)
+        persistMessages.current = loadedMessages
+      } else {
+        console.log("Using persisted messages instead of loading from server")
+      }
+    },
+    [activeChatId],
+  )
 
   const toggleSidebar = () => {
     setIsChatSidebarOpen(!isChatSidebarOpen)
@@ -575,17 +520,19 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
 
   const toggleStreaming = () => {
     setUseStreaming(!useStreaming)
+    console.log(`Is using streaming ${useStreaming}`)
   }
 
   return (
     <div className="app">
       <ChatManager
-        activeChatId={activeChatId}
+        activeChatId={isInNewChatMode ? null : activeChatId}
         onChatsLoaded={handleChatsLoaded}
         onChatMessagesLoaded={handleChatMessagesLoaded}
         onError={setError}
-        isNewChat={isNewChat}
+        isNewChat={isInNewChatMode} 
         skipMessageLoading={isCreatingChat.current}
+        key={isInNewChatMode ? 'new-chat-view' : `chat-${activeChatId || 'unknown'}`}
       />
 
       <ChatSidebar
@@ -598,12 +545,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
       />
 
       <div className="chat-main">
-        <Header
-          onMenuClick={toggleSidebar}
-          backendStatus={backendStatus}
-          useStreaming={useStreaming}
-          onToggleStreaming={toggleStreaming}
-        />
+        <Header onMenuClick={toggleSidebar} backendStatus={backendStatus} />
 
         <MessageList messages={messages} isLoading={isLoading} />
 
@@ -621,6 +563,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
           backendStatus={backendStatus}
           onSubmit={handleSubmit}
           useStreaming={useStreaming}
+          onToggleStreaming={toggleStreaming}
         />
       </div>
     </div>

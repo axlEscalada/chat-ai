@@ -9,7 +9,8 @@ interface MessageFormProps {
   isLoading: boolean
   backendStatus: "checking" | "connected" | "disconnected"
   onSubmit: (e: FormEvent<HTMLFormElement>) => Promise<void>
-  useStreaming?: boolean
+  useStreaming: boolean
+  onToggleStreaming: () => void // Added toggle function prop
 }
 
 const MessageForm: React.FC<MessageFormProps> = ({
@@ -19,6 +20,7 @@ const MessageForm: React.FC<MessageFormProps> = ({
   backendStatus,
   onSubmit,
   useStreaming = true,
+  onToggleStreaming,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null)
   const [showTokenCount, setShowTokenCount] = useState(false)
@@ -67,6 +69,16 @@ const MessageForm: React.FC<MessageFormProps> = ({
 
   return (
     <form className="input-form" onSubmit={onSubmit}>
+      <button 
+        type="button"
+        className={`streaming-indicator ${useStreaming ? "active" : ""}`}
+        title={useStreaming ? "Streaming enabled" : "Streaming disabled"}
+        onClick={onToggleStreaming}
+        style={{ cursor: "pointer" }}
+      >
+        <BsLightningChargeFill size={18} />
+      </button>
+      
       <div className="input-container" onClick={handleInputClick}>
         <input
           ref={inputRef}
@@ -96,15 +108,6 @@ const MessageForm: React.FC<MessageFormProps> = ({
       {showTokenCount && (
         <div className="token-popup">
           {isCountingTokens ? "Counting..." : `Tokens: ${tokenCount}`}
-        </div>
-      )}
-
-      {useStreaming !== undefined && (
-        <div
-          className={`streaming-indicator ${useStreaming ? "active" : ""}`}
-          title={useStreaming ? "Streaming enabled" : "Streaming disabled"}
-        >
-          <BsLightningChargeFill size={18} />
         </div>
       )}
 
