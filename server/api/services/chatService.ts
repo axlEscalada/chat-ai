@@ -48,16 +48,19 @@ export class ChatServiceImpl implements ChatService {
       let response: LlmResponse = { text: "" }
       let chatId: string
 
-      if (initialPrompt) {
-        response = await llmService.generateResponse(initialPrompt)
-        chatId = await this.repository.createChat(
-          sessionId,
-          initialPrompt,
-          response,
-        )
-      } else {
+      if (!initialPrompt) {
         chatId = await this.repository.createChat(sessionId)
+        console.log(`Response create chat ${response}`)
+
+        return [chatId, response]
       }
+
+      response = await llmService.generateResponse(initialPrompt)
+      chatId = await this.repository.createChat(
+        sessionId,
+        initialPrompt,
+        response,
+      )
 
       console.log(`Response create chat ${response}`)
 

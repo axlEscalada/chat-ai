@@ -1,6 +1,8 @@
 import request from "supertest"
-import { app } from "../api/index"
 import { chatService } from "../api/services/chatService"
+import { createTestApp } from "./testSetup"
+
+const app = createTestApp()
 
 jest.mock("../api/services/chatService", () => ({
   chatService: {

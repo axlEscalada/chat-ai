@@ -32,6 +32,4 @@ app.listen(port, () => {
   console.log(`AI API server listening on port ${port}`)
 })
 
-// module.exports = app
-
-export { app }
+module.exports = app
