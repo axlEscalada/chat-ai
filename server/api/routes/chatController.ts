@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { chatService } from "../services/chatService"
+import { chatService, PromptResponse } from "../services/chatService"
 
 export class ChatController {
   async createChat(req: Request, res: Response): Promise<void> {
@@ -43,9 +43,10 @@ export class ChatController {
 
   async streamMessage(req: Request, res: Response): Promise<void> {
     try {
-      const { chatId, prompt } = req.body
+      console.log(`BODY ${JSON.stringify(req.body)}`)
+      const { prompt, createChat, sessionId, chatId = undefined } = req.body
 
-      if (!chatId || !prompt) {
+      if (!chatId && !prompt) {
         res.status(400).json({ error: "Chat ID and prompt are required" })
         return
       }
@@ -62,41 +63,48 @@ export class ChatController {
         })}\n\n`,
       )
 
-      await chatService.streamMessage(chatId, prompt, {
-        onChunk: (text) => {
-          res.write(
-            `data: ${JSON.stringify({
-              type: "content_chunk",
-              text,
-            })}\n\n`,
-          )
+      await chatService.streamMessage(
+        prompt,
+        createChat,
+        sessionId,
+        {
+          onChunk: (text) => {
+            res.write(
+              `data: ${JSON.stringify({
+                type: "content_chunk",
+                text,
+              })}\n\n`,
+            )
+          },
+
+          onComplete: (response: PromptResponse) => {
+            res.write(
+              `data: ${JSON.stringify({
+                type: "content_complete",
+                promptTokenSize: response.promptTokenSize,
+                responseTokenSize: response.responseTokenSize,
+                chatId: response.chatId,
+              })}\n\n`,
+            )
+
+            res.end()
+          },
+
+          onError: (error) => {
+            console.error("Streaming error:", error)
+
+            res.write(
+              `data: ${JSON.stringify({
+                type: "error",
+                message: error.message || "Unknown error occurred",
+              })}\n\n`,
+            )
+
+            res.end()
+          },
         },
-
-        onComplete: (response) => {
-          res.write(
-            `data: ${JSON.stringify({
-              type: "content_complete",
-              promptTokenSize: response.promptTokenSize,
-              responseTokenSize: response.responseTokenSize,
-            })}\n\n`,
-          )
-
-          res.end()
-        },
-
-        onError: (error) => {
-          console.error("Streaming error:", error)
-
-          res.write(
-            `data: ${JSON.stringify({
-              type: "error",
-              message: error.message || "Unknown error occurred",
-            })}\n\n`,
-          )
-
-          res.end()
-        },
-      })
+        chatId,
+      )
     } catch (error) {
       console.error("Error in streamMessage controller:", error)
 

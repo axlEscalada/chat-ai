@@ -666,7 +666,7 @@ body {
 .message.ai .message-content code {
   font-family: "Source Code Pro", monospace;
   font-size: 0.9em;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0);
   padding: 2px 4px;
   border-radius: 3px;
 }

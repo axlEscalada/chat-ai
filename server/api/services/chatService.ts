@@ -1,10 +1,19 @@
+import { response } from "express"
 import { firebaseRepository } from "../repositories/firebaseRepository"
 import { LlmResponse, llmService } from "./llmService"
 
 export interface StreamCallbacks {
   onChunk: (text: string) => void
-  onComplete: (response: LlmResponse) => void
+  onComplete: (response: PromptResponse) => void
   onError: (error: any) => void
+}
+
+
+export interface PromptResponse {
+  text: string
+  chatId: string
+  promptTokenSize?: number
+  responseTokenSize?: number
 }
 
 export interface ChatService {
@@ -14,9 +23,11 @@ export interface ChatService {
   ): Promise<[string, LlmResponse]>
   sendMessage(chatId: string, prompt: string): Promise<LlmResponse>
   streamMessage(
-    chatId: string,
     prompt: string,
+    createChat: boolean,
+    sessionId: string,
     callbacks: StreamCallbacks,
+    chatId?: string,
   ): Promise<void>
   getChat(chatId: string): Promise<any>
   getUserChats(sessionId: string): Promise<any[]>
@@ -70,9 +81,11 @@ export class ChatServiceImpl implements ChatService {
   }
 
   async streamMessage(
-    chatId: string,
     prompt: string,
+    createChat: boolean,
+    sessionId: string,
     callbacks: StreamCallbacks,
+    chatId?: string,
   ): Promise<void> {
     try {
       let accumulatedText = ""
@@ -87,10 +100,17 @@ export class ChatServiceImpl implements ChatService {
 
         async (finalResponse) => {
           try {
+            if(createChat) {
+              chatId = await firebaseRepository.createChat(sessionId)
+            }
             finalResponse.text = accumulatedText
 
+            if (chatId === undefined) {
+              throw new Error(`Chat id not provided`)
+            }
+
             await firebaseRepository.addMessagePair(
-              chatId,
+              chatId || "",
               prompt,
               finalResponse,
             )
@@ -101,7 +121,12 @@ export class ChatServiceImpl implements ChatService {
               `Final response: ${finalResponse.text.substring(0, 100)}...`,
             )
 
-            callbacks.onComplete(finalResponse)
+            callbacks.onComplete({
+              text: accumulatedText,
+              promptTokenSize: finalResponse.promptTokenSize,
+              responseTokenSize: finalResponse.responseTokenSize,
+              chatId: chatId,
+            })
           } catch (error) {
             console.error("Error saving streamed message:", error)
             callbacks.onError(error)

@@ -20,6 +20,7 @@ import ChatSidebar from "./components/chat/ChatSidebar"
 import Header from "./components/layout/Header"
 import ErrorMessage from "./components/shared/ErrorMessage"
 import "./App.css"
+import { create } from "domain"
 
 interface ApiError {
   message: string
@@ -73,8 +74,8 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   const [useStreaming, setUseStreaming] = useState<boolean>(false)
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(false)
   const [forceNewChat, setForceNewChat] = useState(isNewChat)
-  const [isCreatingNewChat, setIsCreatingNewChat] = useState(isNewChat);
-  const [isInNewChatMode, setIsInNewChatMode] = useState(isNewChat);
+  const [isCreatingNewChat, setIsCreatingNewChat] = useState(isNewChat)
+  const [isInNewChatMode, setIsInNewChatMode] = useState(isNewChat)
 
   const isInternalNavigation = useRef(false)
   const persistMessages = useRef<Message[]>([])
@@ -111,10 +112,10 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
 
   useEffect(() => {
     if (chatId && chatId !== activeChatId && !isInNewChatMode) {
-      console.log("URL chatId changed, updating activeChatId:", chatId);
-      setActiveChatId(chatId);
+      console.log("URL chatId changed, updating activeChatId:", chatId)
+      setActiveChatId(chatId)
     }
-  }, [chatId, activeChatId, isInNewChatMode]);
+  }, [chatId, activeChatId, isInNewChatMode])
 
   useEffect(() => {
     console.log("activeChatId changed to:", activeChatId)
@@ -147,9 +148,9 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
 
   useEffect(() => {
     if (activeChatId && !isNewChat) {
-      setIsCreatingNewChat(false);
+      setIsCreatingNewChat(false)
     }
-  }, [activeChatId, isNewChat]);
+  }, [activeChatId, isNewChat])
 
   const addMessageToState = (newMessage: Message) => {
     setMessages((prevMessages) => {
@@ -196,11 +197,10 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   }
 
   const handleStreamingSubmit = async (currentInput: string) => {
+    var createChat = false
     if (!activeChatId) {
-      console.log(
-        "No active chat ID, creating a new chat first (non-streaming)",
-      )
-      return handleStandardSubmit(currentInput)
+      console.log("No active chat ID, creating a new chat first (streaming)")
+      createChat = true
     }
 
     console.log(
@@ -219,51 +219,57 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
       addMessageToState(aiPlaceholder)
       setIsLoading(false)
 
-      await sendStreamingMessage(currentInput, activeChatId, {
-        onChunk: (text) => {
-          updateMessageInState(
-            (msg) => msg.sender === "ai" && msg.isStreaming === true,
-            (msg) => ({
-              ...msg,
-              text: msg.text + text,
-            }),
-          )
+      await sendStreamingMessage(
+        currentInput,
+        createChat,
+        {
+          onChunk: (text) => {
+            updateMessageInState(
+              (msg) => msg.sender === "ai" && msg.isStreaming === true,
+              (msg) => ({
+                ...msg,
+                text: msg.text + text,
+              }),
+            )
+          },
+
+          onComplete: (metadata) => {
+            setActiveChatId(metadata.chatId)
+            updateLastUserMessageTokenSize(
+              metadata.promptTokenSize?.toString() || "?",
+            )
+
+            updateMessageInState(
+              (msg) => msg.sender === "ai" && msg.isStreaming === true,
+              (msg) => ({
+                ...msg,
+                isStreaming: false,
+                tokenSize: metadata.responseTokenSize?.toString() || "?",
+              }),
+            )
+
+            setIsLoading(false)
+          },
+
+          onError: (errorMessage) => {
+            console.error("Streaming error:", errorMessage)
+
+            updateMessageInState(
+              (msg) => msg.sender === "ai" && msg.isStreaming === true,
+              () => ({
+                text: `Error: ${errorMessage}`,
+                tokenSize: "0",
+                sender: "system",
+                timestamp: new Date().toISOString(),
+                isError: true,
+              }),
+            )
+
+            setIsLoading(false)
+          },
         },
-
-        onComplete: (metadata) => {
-          updateLastUserMessageTokenSize(
-            metadata.promptTokenSize?.toString() || "?",
-          )
-
-          updateMessageInState(
-            (msg) => msg.sender === "ai" && msg.isStreaming === true,
-            (msg) => ({
-              ...msg,
-              isStreaming: false,
-              tokenSize: metadata.responseTokenSize?.toString() || "?",
-            }),
-          )
-
-          setIsLoading(false)
-        },
-
-        onError: (errorMessage) => {
-          console.error("Streaming error:", errorMessage)
-
-          updateMessageInState(
-            (msg) => msg.sender === "ai" && msg.isStreaming === true,
-            () => ({
-              text: `Error: ${errorMessage}`,
-              tokenSize: "0",
-              sender: "system",
-              timestamp: new Date().toISOString(),
-              isError: true,
-            }),
-          )
-
-          setIsLoading(false)
-        },
-      })
+        activeChatId || undefined,
+      )
     } catch (error) {
       console.error("Error in handleStreamingSubmit:", error)
       const errorMsg =
@@ -414,38 +420,38 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   }
 
   const handleNewChat = useCallback(() => {
-    console.log("Starting new chat - entering new chat mode");
-    
-    setMessages([]);
-    persistMessages.current = [];
-    
-    localStorage.removeItem("activeChatId");
-    setActiveChatId(null);
-    
-    setIsInNewChatMode(true);
-    
-    navigate("/", { replace: true });
-  }, [navigate]);
+    console.log("Starting new chat - entering new chat mode")
+
+    setMessages([])
+    persistMessages.current = []
+
+    localStorage.removeItem("activeChatId")
+    setActiveChatId(null)
+
+    setIsInNewChatMode(true)
+
+    navigate("/", { replace: true })
+  }, [navigate])
 
   const handleSelectChat = useCallback(
     (chatId: string) => {
       if (activeChatId === chatId) {
-        console.log("Already on this chat, no need to navigate");
-        return;
+        console.log("Already on this chat, no need to navigate")
+        return
       }
 
-      console.log("Selecting chat:", chatId);
-      
-      setIsInNewChatMode(false);
-      
-      setMessages([]);
-      persistMessages.current = [];
-      isSwitchingChat.current = true;
-      
-      navigate(`/chat/${chatId}`, { replace: true });
+      console.log("Selecting chat:", chatId)
+
+      setIsInNewChatMode(false)
+
+      setMessages([])
+      persistMessages.current = []
+      isSwitchingChat.current = true
+
+      navigate(`/chat/${chatId}`, { replace: true })
     },
-    [activeChatId, navigate]
-  );
+    [activeChatId, navigate],
+  )
 
   const handleChatsLoaded = useCallback(
     (loadedChats: Chat[]) => {
@@ -468,8 +474,8 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
   const handleChatMessagesLoaded = useCallback(
     (loadedMessages: Message[]) => {
       if (isInNewChatMode) {
-        console.log("In new chat mode, ignoring loaded messages");
-        return;
+        console.log("In new chat mode, ignoring loaded messages")
+        return
       }
 
       console.log("handleChatMessagesLoaded called with:", {
@@ -499,7 +505,7 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
         console.log("Switching chats, loading messages from server")
         setMessages(loadedMessages)
         persistMessages.current = loadedMessages
-        isSwitchingChat.current = false 
+        isSwitchingChat.current = false
         return
       }
 
@@ -530,9 +536,13 @@ const ChatInterface = ({ isNewChat }: { isNewChat: boolean }) => {
         onChatsLoaded={handleChatsLoaded}
         onChatMessagesLoaded={handleChatMessagesLoaded}
         onError={setError}
-        isNewChat={isInNewChatMode} 
+        isNewChat={isInNewChatMode}
         skipMessageLoading={isCreatingChat.current}
-        key={isInNewChatMode ? 'new-chat-view' : `chat-${activeChatId || 'unknown'}`}
+        key={
+          isInNewChatMode
+            ? "new-chat-view"
+            : `chat-${activeChatId || "unknown"}`
+        }
       />
 
       <ChatSidebar

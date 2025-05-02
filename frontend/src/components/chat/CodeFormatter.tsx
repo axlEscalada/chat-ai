@@ -72,7 +72,6 @@ const CodeFormatter: React.FC<CodeFormatterProps> = ({ text }) => {
     navigator.clipboard
       .writeText(code)
       .then(() => {
-        // You could add a toast notification here if desired
         console.log("Code copied to clipboard")
       })
       .catch((err) => {

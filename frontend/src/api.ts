@@ -33,6 +33,7 @@ export interface StreamEventHandler {
   onComplete: (metadata: {
     promptTokenSize?: number
     responseTokenSize?: number
+    chatId: string
   }) => void
   onError: (error: string) => void
 }
@@ -220,19 +221,12 @@ export const sendMessage = async (
 
 export const sendStreamingMessage = async (
   prompt: string,
-  chatId: string,
+  createChat: boolean,
   eventHandler: StreamEventHandler,
+  chatId?: string,
 ): Promise<void> => {
   try {
-    console.log(
-      `Sending streaming message to chat ${chatId}: "${prompt.substring(0, 30)}${prompt.length > 30 ? "..." : ""}"`,
-    )
-
-    if (!chatId) {
-      throw new Error("No chat ID provided to sendStreamingMessage")
-    }
-
-    // Use the streaming endpoint with POST method
+    const sessionId = getSessionId()
     const response = await fetch(`${API_URL}/chats/stream`, {
       method: "POST",
       headers: {
@@ -241,6 +235,8 @@ export const sendStreamingMessage = async (
       body: JSON.stringify({
         chatId,
         prompt,
+        createChat,
+        sessionId,
       }),
     })
 
@@ -283,12 +279,13 @@ export const sendStreamingMessage = async (
                 eventHandler.onComplete({
                   promptTokenSize: data.promptTokenSize,
                   responseTokenSize: data.responseTokenSize,
+                  chatId: data.chatId,
                 })
-                return // Exit the function on completion
+                return
 
               case "error":
                 eventHandler.onError(data.message || "Unknown streaming error")
-                return // Exit the function on error
+                return
 
               default:
                 console.warn("Unknown event type:", data.type)
