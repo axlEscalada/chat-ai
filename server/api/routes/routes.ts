@@ -4,10 +4,12 @@ import { chatController } from "./chatController"
 const router = express.Router()
 
 router.post("/chats", chatController.createChat)
-router.post("/chats/message", chatController.sendMessage)
-router.post("/chats/stream", chatController.streamMessage)
-router.post("/chat/countTokens", chatController.countPromptTokens)
 router.get("/chats/:chatId", chatController.getChat)
+
+router.post("/prompt", chatController.sendMessage)
+router.post("/prompt/stream", chatController.streamMessage)
+router.post("/prompt/tokens", chatController.countPromptTokens)
+
 router.get("/sessions/:sessionId/chats", chatController.getUserChats)
 
 export default router

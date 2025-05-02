@@ -1,5 +1,5 @@
-import { response } from "express"
-import { firebaseRepository } from "../repositories/firebaseRepository"
+import { createChatRepository } from "../repositories/repositoryFactory"
+import { ChatRepository } from "../repositories/chatRepository"
 import { LlmResponse, llmService } from "./llmService"
 
 export interface StreamCallbacks {
@@ -7,7 +7,6 @@ export interface StreamCallbacks {
   onComplete: (response: PromptResponse) => void
   onError: (error: any) => void
 }
-
 
 export interface PromptResponse {
   text: string
@@ -35,6 +34,12 @@ export interface ChatService {
 }
 
 export class ChatServiceImpl implements ChatService {
+  private repository: ChatRepository
+
+  constructor(repository: ChatRepository) {
+    this.repository = repository
+  }
+
   async createChat(
     sessionId: string,
     initialPrompt?: string,
@@ -45,13 +50,13 @@ export class ChatServiceImpl implements ChatService {
 
       if (initialPrompt) {
         response = await llmService.generateResponse(initialPrompt)
-        chatId = await firebaseRepository.createChat(
+        chatId = await this.repository.createChat(
           sessionId,
           initialPrompt,
           response,
         )
       } else {
-        chatId = await firebaseRepository.createChat(sessionId)
+        chatId = await this.repository.createChat(sessionId)
       }
 
       console.log(`Response create chat ${response}`)
@@ -67,7 +72,7 @@ export class ChatServiceImpl implements ChatService {
     try {
       const response = await llmService.generateResponse(prompt)
 
-      await firebaseRepository.addMessagePair(chatId, prompt, response)
+      await this.repository.addMessagePair(chatId, prompt, response)
 
       console.log(`Message pair added to chat ${chatId}`)
       console.log(`Prompt: ${prompt}`)
@@ -94,14 +99,12 @@ export class ChatServiceImpl implements ChatService {
         prompt,
         (chunk) => {
           accumulatedText += chunk
-
           callbacks.onChunk(chunk)
         },
-
         async (finalResponse) => {
           try {
-            if(createChat) {
-              chatId = await firebaseRepository.createChat(sessionId)
+            if (createChat) {
+              chatId = await this.repository.createChat(sessionId)
             }
             finalResponse.text = accumulatedText
 
@@ -109,7 +112,7 @@ export class ChatServiceImpl implements ChatService {
               throw new Error(`Chat id not provided`)
             }
 
-            await firebaseRepository.addMessagePair(
+            await this.repository.addMessagePair(
               chatId || "",
               prompt,
               finalResponse,
@@ -132,7 +135,6 @@ export class ChatServiceImpl implements ChatService {
             callbacks.onError(error)
           }
         },
-
         (error: Error) => {
           console.error("Error in streaming generation:", error)
           callbacks.onError(error)
@@ -145,11 +147,11 @@ export class ChatServiceImpl implements ChatService {
   }
 
   async getChat(chatId: string): Promise<any> {
-    return firebaseRepository.getChat(chatId)
+    return this.repository.getChat(chatId)
   }
 
   async getUserChats(sessionId: string): Promise<any[]> {
-    return firebaseRepository.getUserChats(sessionId)
+    return this.repository.getUserChats(sessionId)
   }
 
   async countPromptTokens(prompt: string): Promise<number> {
@@ -157,4 +159,9 @@ export class ChatServiceImpl implements ChatService {
   }
 }
 
-export const chatService = new ChatServiceImpl()
+export const createChatService = (): ChatService => {
+  const repository = createChatRepository()
+  return new ChatServiceImpl(repository)
+}
+
+export const chatService = createChatService()

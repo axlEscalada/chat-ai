@@ -69,7 +69,7 @@ const MessageForm: React.FC<MessageFormProps> = ({
 
   return (
     <form className="input-form" onSubmit={onSubmit}>
-      <button 
+      <button
         type="button"
         className={`streaming-indicator ${useStreaming ? "active" : ""}`}
         title={useStreaming ? "Streaming enabled" : "Streaming disabled"}
@@ -78,7 +78,7 @@ const MessageForm: React.FC<MessageFormProps> = ({
       >
         <BsLightningChargeFill size={18} />
       </button>
-      
+
       <div className="input-container" onClick={handleInputClick}>
         <input
           ref={inputRef}

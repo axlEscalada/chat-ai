@@ -5,6 +5,10 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  }
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./api",
+    "types": ["jest"]
+  },
+  "include": ["api/**/*.ts", "tests/**/*.test.ts"]
 }

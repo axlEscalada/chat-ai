@@ -18,6 +18,7 @@ import {
 import { v4 as uuidv4 } from "uuid"
 import * as dotenv from "dotenv"
 import { LlmResponse } from "../services/llmService"
+import { Chat, ChatRepository, Message, MessageType } from "./chatRepository"
 
 dotenv.config()
 
@@ -30,28 +31,7 @@ const firebaseConfig = {
   appId: process.env.FIREBASE_APP_ID,
 }
 
-export enum MessageType {
-  PROMPT = "prompt",
-  RESPONSE = "response",
-}
-
-export interface Message {
-  type: MessageType
-  content: string
-  tokenSize: number
-  timestamp: number
-}
-
-export interface Chat {
-  id: string
-  sessionId: string
-  title?: string
-  createdAt: number
-  updatedAt: number
-  messages: Message[]
-}
-
-export class FirebaseRepository {
+export class FirebaseRepository implements ChatRepository {
   private app: FirebaseApp
   private db: Firestore
   private initialized: boolean = false

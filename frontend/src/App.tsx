@@ -20,7 +20,6 @@ import ChatSidebar from "./components/chat/ChatSidebar"
 import Header from "./components/layout/Header"
 import ErrorMessage from "./components/shared/ErrorMessage"
 import "./App.css"
-import { create } from "domain"
 
 interface ApiError {
   message: string

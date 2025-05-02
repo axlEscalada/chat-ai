@@ -159,7 +159,7 @@ export const sendMessage = async (
     }
 
     const response = await fetchWithTimeout(
-      `${API_URL}/chats/message`,
+      `${API_URL}/prompt`,
       {
         method: "POST",
         headers: {
@@ -227,7 +227,7 @@ export const sendStreamingMessage = async (
 ): Promise<void> => {
   try {
     const sessionId = getSessionId()
-    const response = await fetch(`${API_URL}/chats/stream`, {
+    const response = await fetch(`${API_URL}/prompt/stream`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -384,7 +384,7 @@ export const getUserChats = async (): Promise<any[]> => {
 
 export const getTokenCount = async (prompt: string): Promise<string> => {
   try {
-    const response = await fetchWithTimeout(`${API_URL}/chat/countTokens`, {
+    const response = await fetchWithTimeout(`${API_URL}/prompt/tokens`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -1,9 +1,9 @@
 import React from "react"
-import CodeFormatter from "./CodeFormatter"
+import CodeFormatter from "./LLMFormatter"
 
 interface MessageProps {
   text: string
-  sender: "user" | "ai" | "system" // Update to match the union type
+  sender: "user" | "ai" | "system"
   tokenSize: string
   timestamp: string
   isError?: boolean

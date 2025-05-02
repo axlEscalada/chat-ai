@@ -654,22 +654,56 @@ body {
   }
 }
 
-.message.ai .message-content pre {
-  max-width: 100%;
-  overflow-x: auto;
-  background-color: rgba(0, 0, 0, 0.2);
-  padding: 10px;
-  border-radius: 4px;
-  margin: 8px 0;
+/* Target both the pre element and any div elements inside code-block-container */
+.message.ai .message-content .code-block-container pre,
+.message.ai .message-content .code-block-container pre div,
+.message.ai .message-content .code-block-container div[style*="background"],
+.message.ai .message-content .code-block-container [class*="prism"] {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
-.message.ai .message-content code {
-  font-family: "Source Code Pro", monospace;
-  font-size: 0.9em;
-  background-color: rgba(0, 0, 0, 0);
-  padding: 2px 4px;
-  border-radius: 3px;
+/* Remove the pre styling inside code blocks */
+.message.ai .message-content .code-block-container pre {
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
 }
+
+/* Apply proper styling to the code-block-container */
+.message.ai .message-content .code-block-container {
+  background-color: #282c34; /* Your chosen background color */
+  border-radius: 4px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+/* Style the code header */
+.message.ai .message-content .code-header {
+  background-color: #21252b; /* Slightly darker than the code background */
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Ensure even syntax highlighter elements have transparent background */
+.message.ai .message-content .code-block-container [style*="background"] {
+  background: transparent !important;
+}
+
+/* This is a stronger override for SyntaxHighlighter elements */
+.message.ai .message-content .code-block-container .language-wrapper * {
+  background: transparent !important;
+}
+
+/* .message.ai .message-content code { */
+/*   font-family: "Source Code Pro", monospace; */
+/*   font-size: 0.9em; */
+/*   background-color: rgba(0, 0, 0, 0); */
+/*   padding: 2px 4px; */
+/*   border-radius: 3px; */
+/* } */
 
 @media (max-width: 768px) {
   .token-popup {
