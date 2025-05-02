@@ -27,18 +27,6 @@ describe("ChatService", () => {
   })
 
   describe("createChat", () => {
-    it("should create a chat without initial prompt", async () => {
-      const sessionId = "test-session-id"
-      const expectedChatId = "new-chat-id"
-      mockRepository.createChat.mockResolvedValue(expectedChatId)
-
-      const [chatId, response] = await chatService.createChat(sessionId)
-
-      expect(mockRepository.createChat).toHaveBeenCalledWith(sessionId)
-      expect(chatId).toBe(expectedChatId)
-      expect(response).toEqual({ text: "" })
-    })
-
     it("should create a chat with initial prompt", async () => {
       const sessionId = "test-session-id"
       const initialPrompt = "Initial prompt"
@@ -154,11 +142,10 @@ describe("ChatService", () => {
       await chatService.streamMessage(prompt, createChat, sessionId, callbacks)
 
       expect(llmService.generateStreamingResponse).toHaveBeenCalled()
-      expect(mockRepository.createChat).toHaveBeenCalledWith(sessionId)
-      expect(mockRepository.addMessagePair).toHaveBeenCalledWith(
-        newChatId,
+      expect(mockRepository.createChat).toHaveBeenCalledWith(
+        sessionId,
         prompt,
-        expect.objectContaining({ text: "Hello, I am streaming" }),
+        finalResponse,
       )
 
       expect(callbacks.onChunk).toHaveBeenCalledTimes(3)

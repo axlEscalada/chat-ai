@@ -18,7 +18,7 @@ export interface PromptResponse {
 export interface ChatService {
   createChat(
     sessionId: string,
-    initialPrompt?: string,
+    initialPrompt: string,
   ): Promise<[string, LlmResponse]>
   sendMessage(chatId: string, prompt: string): Promise<LlmResponse>
   streamMessage(
@@ -42,20 +42,11 @@ export class ChatServiceImpl implements ChatService {
 
   async createChat(
     sessionId: string,
-    initialPrompt?: string,
+    initialPrompt: string,
   ): Promise<[string, LlmResponse]> {
     try {
-      let response: LlmResponse = { text: "" }
-      let chatId: string
-
-      if (!initialPrompt) {
-        chatId = await this.repository.createChat(sessionId)
-
-        return [chatId, response]
-      }
-
-      response = await llmService.generateResponse(initialPrompt)
-      chatId = await this.repository.createChat(
+      const response = await llmService.generateResponse(initialPrompt)
+      const chatId = await this.repository.createChat(
         sessionId,
         initialPrompt,
         response,
