@@ -41,7 +41,6 @@ const ChatManager = ({
   const navigate = useNavigate()
 
   const loadUserChats = useCallback(async () => {
-    console.log("Loading user chats")
     setIsLoading(true)
 
     try {
@@ -70,13 +69,9 @@ const ChatManager = ({
   const loadChatMessages = useCallback(
     async (chatId: string) => {
       if (skipMessageLoading) {
-        console.log(
-          `Skipping message loading for chat: ${chatId} as requested by App component`,
-        )
         return true
       }
 
-      console.log(`Loading messages for chat: ${chatId}`)
       setIsLoading(true)
 
       try {
@@ -122,28 +117,16 @@ const ChatManager = ({
 
   useEffect(() => {
     if (isNewChat) {
-      console.log("ChatManager: In NEW CHAT mode, clearing messages and ignoring any activeChatId");
-      onChatMessagesLoaded([]);
-      setLastLoadedChatId(null);
-      return;
-    }
-
-    if (!activeChatId) {
-      console.log("ChatManager: activeChatId is null, not loading any chat")
+      onChatMessagesLoaded([])
+      setLastLoadedChatId(null)
       return
     }
 
-    if (skipMessageLoading) {
-      console.log(
-        `ChatManager: Skipping message loading for ${activeChatId} as requested`,
-      )
+    if (!activeChatId || skipMessageLoading) {
       return
     }
 
     if (activeChatId !== lastLoadedChatId) {
-      console.log(
-        `ChatManager: Loading chat ${activeChatId} (different from last loaded: ${lastLoadedChatId})`,
-      )
       loadChatMessages(activeChatId).catch((err) => {
         console.error("Failed to load chat messages:", err)
       })

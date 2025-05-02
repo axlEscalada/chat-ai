@@ -46,17 +46,7 @@ export class FirebaseRepository implements ChatRepository {
     )
 
     try {
-      try {
-        this.app = initializeApp(firebaseConfig)
-      } catch (error: any) {
-        if (error.code === "app/duplicate-app") {
-          console.log("Firebase app already initialized, getting existing app")
-          this.app = initializeApp(firebaseConfig, "default")
-        } else {
-          throw error
-        }
-      }
-
+      this.app = this.initializeFirebase()
       this.db = getFirestore(this.app)
       this.initialized = true
       console.log("Firebase initialized successfully")
@@ -67,12 +57,17 @@ export class FirebaseRepository implements ChatRepository {
     }
   }
 
-  private ensureInitialized(): boolean {
-    if (!this.initialized) {
-      console.error("Firebase is not properly initialized")
-      return false
+  private initializeFirebase(): FirebaseApp {
+    try {
+      return initializeApp(firebaseConfig)
+    } catch (error: any) {
+      if (error.code === "app/duplicate-app") {
+        console.log("Firebase app already initialized, getting existing app")
+        return initializeApp(firebaseConfig, "default")
+      }
+
+      throw error
     }
-    return true
   }
 
   public getOrCreateSessionId(): string {
@@ -96,10 +91,6 @@ export class FirebaseRepository implements ChatRepository {
     initialPrompt?: string,
     response?: LlmResponse,
   ): Promise<string> {
-    if (!this.ensureInitialized()) {
-      throw new Error("Firebase not initialized")
-    }
-
     try {
       const now = Date.now()
       const chatId = uuidv4()
@@ -150,10 +141,6 @@ export class FirebaseRepository implements ChatRepository {
     prompt: string,
     response: LlmResponse,
   ): Promise<void> {
-    if (!this.ensureInitialized()) {
-      throw new Error("Firebase not initialized")
-    }
-
     try {
       const now = Date.now()
       const promptMessage: Message = {
@@ -183,10 +170,6 @@ export class FirebaseRepository implements ChatRepository {
   }
 
   public async getChat(chatId: string): Promise<Chat | null> {
-    if (!this.ensureInitialized()) {
-      return null
-    }
-
     try {
       const chatRef = doc(this.db, "chats", chatId)
       const chatSnap = await getDoc(chatRef)
@@ -206,10 +189,6 @@ export class FirebaseRepository implements ChatRepository {
   }
 
   public async getUserChats(sessionId: string): Promise<Chat[]> {
-    if (!this.ensureInitialized()) {
-      return []
-    }
-
     try {
       const chatsRef = collection(this.db, "chats")
       const q = query(

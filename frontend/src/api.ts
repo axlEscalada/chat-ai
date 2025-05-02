@@ -97,11 +97,6 @@ export const createChat = async (
   initialPrompt?: string,
 ): Promise<ChatResponse> => {
   try {
-    console.log(
-      "Creating new chat with initial prompt:",
-      initialPrompt?.substring(0, 30) +
-        (initialPrompt && initialPrompt.length > 30 ? "..." : ""),
-    )
     const sessionId = getSessionId()
 
     const response = await fetchWithTimeout(`${API_URL}/chats`, {
@@ -150,10 +145,6 @@ export const sendMessage = async (
   chatId: string,
 ): Promise<ApiResponse> => {
   try {
-    console.log(
-      `Sending message to chat ${chatId}: "${prompt.substring(0, 30)}${prompt.length > 30 ? "..." : ""}"`,
-    )
-
     if (!chatId) {
       throw new Error("No chat ID provided to sendMessage")
     }
@@ -322,8 +313,6 @@ export const sendStreamingMessage = async (
 
 export const getChat = async (chatId: string): Promise<any> => {
   try {
-    console.log(`Fetching chat: ${chatId}`)
-
     const response = await fetchWithTimeout(`${API_URL}/chats/${chatId}`, {
       method: "GET",
       headers: {
@@ -337,7 +326,6 @@ export const getChat = async (chatId: string): Promise<any> => {
     }
 
     const data = await safeJsonParse(response)
-    console.log(`Retrieved chat with ${data.messages?.length || 0} messages`)
     return data
   } catch (error) {
     console.error("Error loading chat:", error)
@@ -348,7 +336,6 @@ export const getChat = async (chatId: string): Promise<any> => {
 export const getUserChats = async (): Promise<any[]> => {
   try {
     const sessionId = getSessionId()
-    console.log(`Fetching chats for session: ${sessionId}`)
 
     const response = await fetchWithTimeout(
       `${API_URL}/sessions/${sessionId}/chats`,
@@ -366,14 +353,6 @@ export const getUserChats = async (): Promise<any[]> => {
     }
 
     const chats = await safeJsonParse(response)
-    console.log(`Retrieved ${chats.length} chats`)
-
-    if (chats.length > 0) {
-      console.log(
-        "Chat IDs in getUserChats:",
-        chats.map((chat: { id: string }) => chat.id),
-      )
-    }
 
     return chats
   } catch (error) {

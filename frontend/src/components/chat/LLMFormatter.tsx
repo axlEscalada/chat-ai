@@ -59,20 +59,17 @@ const LLMResponseFormatter: React.FC<LLMResponseFormatterProps> = ({
         rehypePlugins={[rehypeRaw]}
         components={{
           code(props: any) {
-            console.log("Code props:", props);
-            
             const { children, className, inline, node, ...rest } = props
             const match = /language-(\w+)/.exec(className || "")
             const language = match ? match[1] : "text"
             const codeString = String(children).replace(/\n$/, "")
-            
-            const isInline = 
-              inline === true || 
-              (node && node.position && 
-               node.position.start.line === node.position.end.line);
-            
-            console.log("Is inline?", isInline);
-            
+
+            const isInline =
+              inline === true ||
+              (node &&
+                node.position &&
+                node.position.start.line === node.position.end.line)
+
             if (isInline) {
               return (
                 <code {...rest} className={className || "inline-code"}>
@@ -80,8 +77,7 @@ const LLMResponseFormatter: React.FC<LLMResponseFormatterProps> = ({
                 </code>
               )
             }
-            
-            // For all code blocks
+
             return (
               <div className="code-block-container">
                 <div className="code-header">
