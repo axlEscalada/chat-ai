@@ -1,5 +1,4 @@
-import { GeminiLlmService } from "./geminiLlmService"
-
+import { GeminiLlmService } from "./providers/geminiLlmService"
 export interface LlmResponse {
   text: string
   promptTokenSize?: number

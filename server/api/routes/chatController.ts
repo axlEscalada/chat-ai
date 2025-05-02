@@ -1,6 +1,44 @@
 import { Request, Response } from "express"
 import { chatService, PromptResponse } from "../services/chatService"
 
+const setupSSEHeaders = (res: Response): void => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  })
+}
+
+const sendSSEEvent = (
+  res: Response,
+  type: string,
+  data: Record<string, any> = {},
+): void => {
+  res.write(
+    `data: ${JSON.stringify({
+      type,
+      ...data,
+    })}\n\n`,
+  )
+}
+
+const handleStreamError = (
+  res: Response,
+  error: any,
+  logPrefix: string,
+): void => {
+  console.error(logPrefix, error)
+
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Failed to setup streaming" })
+  } else {
+    sendSSEEvent(res, "error", {
+      message: "Error processing stream",
+    })
+    res.end()
+  }
+}
+
 export class ChatController {
   async createChat(req: Request, res: Response): Promise<void> {
     try {
@@ -43,7 +81,6 @@ export class ChatController {
 
   async streamMessage(req: Request, res: Response): Promise<void> {
     try {
-      console.log(`BODY ${JSON.stringify(req.body)}`)
       const { prompt, createChat, sessionId, chatId = undefined } = req.body
 
       if (!chatId && !prompt) {
@@ -51,74 +88,44 @@ export class ChatController {
         return
       }
 
-      res.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      })
+      setupSSEHeaders(res)
+      sendSSEEvent(res, "connection_established")
 
-      res.write(
-        `data: ${JSON.stringify({
-          type: "connection_established",
-        })}\n\n`,
-      )
+      const streamCallbacks = {
+        onChunk: (text: string) => {
+          sendSSEEvent(res, "content_chunk", { text })
+        },
+
+        onComplete: (response: PromptResponse) => {
+          sendSSEEvent(res, "content_complete", {
+            promptTokenSize: response.promptTokenSize,
+            responseTokenSize: response.responseTokenSize,
+            chatId: response.chatId,
+          })
+
+          res.end()
+        },
+
+        onError: (error: any) => {
+          console.error("Streaming error:", error)
+
+          sendSSEEvent(res, "error", {
+            message: error.message || "Unknown error occurred",
+          })
+
+          res.end()
+        },
+      }
 
       await chatService.streamMessage(
         prompt,
         createChat,
         sessionId,
-        {
-          onChunk: (text) => {
-            res.write(
-              `data: ${JSON.stringify({
-                type: "content_chunk",
-                text,
-              })}\n\n`,
-            )
-          },
-
-          onComplete: (response: PromptResponse) => {
-            res.write(
-              `data: ${JSON.stringify({
-                type: "content_complete",
-                promptTokenSize: response.promptTokenSize,
-                responseTokenSize: response.responseTokenSize,
-                chatId: response.chatId,
-              })}\n\n`,
-            )
-
-            res.end()
-          },
-
-          onError: (error) => {
-            console.error("Streaming error:", error)
-
-            res.write(
-              `data: ${JSON.stringify({
-                type: "error",
-                message: error.message || "Unknown error occurred",
-              })}\n\n`,
-            )
-
-            res.end()
-          },
-        },
+        streamCallbacks,
         chatId,
       )
     } catch (error) {
-      console.error("Error in streamMessage controller:", error)
-
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Failed to setup streaming" })
-      } else {
-        res.write(
-          `data: ${JSON.stringify({
-            type: "error",
-            message: "Error processing stream",
-          })}\n\n`,
-        )
-        res.end()
-      }
+      handleStreamError(res, error, "Error in streamMessage controller:")
     }
   }
 

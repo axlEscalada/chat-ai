@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai"
-import { LlmResponse, LlmService } from "./llmService"
+import { LlmResponse, LlmService } from "../llmService"
 
 export class GeminiLlmService implements LlmService {
   private ai = new GoogleGenAI({
@@ -12,7 +12,6 @@ export class GeminiLlmService implements LlmService {
         model: "gemini-2.0-flash",
         contents: prompt,
       })
-      console.log(response)
 
       return {
         text: response.text || "",
@@ -32,8 +31,6 @@ export class GeminiLlmService implements LlmService {
     onError: (error: any) => void,
   ): Promise<void> {
     try {
-      console.log("Starting streaming response generation")
-
       const streamingResponse = await this.ai.models.generateContentStream({
         model: "gemini-2.0-flash",
         contents: prompt,
@@ -49,8 +46,6 @@ export class GeminiLlmService implements LlmService {
           }
         }
 
-        console.log("Streaming complete, getting token counts")
-
         try {
           const tokenResponse = await this.ai.models.generateContent({
             model: "gemini-2.0-flash",
@@ -63,12 +58,6 @@ export class GeminiLlmService implements LlmService {
             responseTokenSize:
               tokenResponse.usageMetadata?.candidatesTokenCount,
           }
-
-          console.log("Final response with token counts:", {
-            textLength: finalResponse.text.length,
-            promptTokenSize: finalResponse.promptTokenSize,
-            responseTokenSize: finalResponse.responseTokenSize,
-          })
 
           onComplete(finalResponse)
         } catch (tokenError) {
@@ -92,12 +81,10 @@ export class GeminiLlmService implements LlmService {
 
   async countPromptToken(prompt: string): Promise<number> {
     try {
-      console.log(`Prompt for counting ${prompt}`)
       const countTokensResponse = await this.ai.models.countTokens({
         model: "gemini-2.0-flash",
         contents: prompt,
       })
-      console.log(countTokensResponse.totalTokens)
 
       return countTokensResponse.totalTokens || 0
     } catch (error) {

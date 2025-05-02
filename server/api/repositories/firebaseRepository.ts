@@ -135,12 +135,9 @@ export class FirebaseRepository implements ChatRepository {
         messages: messages,
       }
 
-      console.log("Creating new chat:", chatId)
-
       const chatRef = doc(this.db, "chats", chatId)
       await setDoc(chatRef, chatData)
 
-      console.log("Chat created successfully:", chatId)
       return chatId
     } catch (error) {
       console.error("Error creating chat:", error)
@@ -173,16 +170,12 @@ export class FirebaseRepository implements ChatRepository {
         timestamp: now + 1,
       }
 
-      console.log(`Adding message pair to chat ${chatId}`)
-
       const chatRef = doc(this.db, "chats", chatId)
 
       await updateDoc(chatRef, {
         messages: arrayUnion(promptMessage, responseMessage),
         updatedAt: now,
       })
-
-      console.log("Message pair added successfully")
     } catch (error) {
       console.error("Error adding message pair:", error)
       throw error
@@ -195,8 +188,6 @@ export class FirebaseRepository implements ChatRepository {
     }
 
     try {
-      console.log(`Fetching chat: ${chatId}`)
-
       const chatRef = doc(this.db, "chats", chatId)
       const chatSnap = await getDoc(chatRef)
 
@@ -206,9 +197,6 @@ export class FirebaseRepository implements ChatRepository {
       }
 
       const chatData = chatSnap.data() as Chat
-      console.log(
-        `Retrieved chat ${chatId} with ${chatData.messages.length} messages`,
-      )
 
       return chatData
     } catch (error) {
@@ -223,8 +211,6 @@ export class FirebaseRepository implements ChatRepository {
     }
 
     try {
-      console.log(`Fetching chats for session: ${sessionId}`)
-
       const chatsRef = collection(this.db, "chats")
       const q = query(
         chatsRef,
@@ -240,7 +226,6 @@ export class FirebaseRepository implements ChatRepository {
         chats.push(data)
       })
 
-      console.log(`Retrieved ${chats.length} chats for session ${sessionId}`)
       return chats
     } catch (error) {
       console.error("Error retrieving chats:", error)

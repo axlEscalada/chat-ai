@@ -50,7 +50,6 @@ export class ChatServiceImpl implements ChatService {
 
       if (!initialPrompt) {
         chatId = await this.repository.createChat(sessionId)
-        console.log(`Response create chat ${response}`)
 
         return [chatId, response]
       }
@@ -61,8 +60,6 @@ export class ChatServiceImpl implements ChatService {
         initialPrompt,
         response,
       )
-
-      console.log(`Response create chat ${response}`)
 
       return [chatId, response]
     } catch (error) {
@@ -76,10 +73,6 @@ export class ChatServiceImpl implements ChatService {
       const response = await llmService.generateResponse(prompt)
 
       await this.repository.addMessagePair(chatId, prompt, response)
-
-      console.log(`Message pair added to chat ${chatId}`)
-      console.log(`Prompt: ${prompt}`)
-      console.log(`Response: ${response}`)
 
       return response
     } catch (error) {
@@ -106,26 +99,25 @@ export class ChatServiceImpl implements ChatService {
         },
         async (finalResponse) => {
           try {
-            if (createChat) {
-              chatId = await this.repository.createChat(sessionId)
-            }
             finalResponse.text = accumulatedText
 
-            if (chatId === undefined) {
-              throw new Error(`Chat id not provided`)
+            if (createChat) {
+              chatId = await this.repository.createChat(
+                sessionId,
+                prompt,
+                finalResponse,
+              )
+            } else {
+              if (chatId === undefined) {
+                throw new Error(`Chat id not provided`)
+              }
+
+              await this.repository.addMessagePair(
+                chatId || "",
+                prompt,
+                finalResponse,
+              )
             }
-
-            await this.repository.addMessagePair(
-              chatId || "",
-              prompt,
-              finalResponse,
-            )
-
-            console.log(`Streaming message pair added to chat ${chatId}`)
-            console.log(`Prompt: ${prompt}`)
-            console.log(
-              `Final response: ${finalResponse.text.substring(0, 100)}...`,
-            )
 
             callbacks.onComplete({
               text: accumulatedText,
