@@ -1,103 +1,106 @@
 export interface Message {
-  text: string
-  tokenSize: string
-  sender: "user" | "ai" | "system"
-  timestamp: string
-  isError?: boolean
+  text: string;
+  tokenSize: string;
+  sender: "user" | "ai" | "system";
+  timestamp: string;
+  isError?: boolean;
 }
 
 interface ApiResponse {
-  response: string
-  [key: string]: any
+  response: string;
+  [key: string]: any;
 }
 
 interface ErrorResponse {
-  error: string
-  [key: string]: any
+  error: string;
+  [key: string]: any;
 }
 
 export interface LlmResponse {
-  text: string
-  promptTokenSize?: number
-  responseTokenSize?: number
+  text: string;
+  promptTokenSize?: number;
+  responseTokenSize?: number;
 }
 
 interface ChatResponse {
-  chatId: string
-  response?: LlmResponse
-  [key: string]: any
+  chatId: string;
+  response?: LlmResponse;
+  [key: string]: any;
 }
 
 export interface StreamEventHandler {
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void;
   onComplete: (metadata: {
-    promptTokenSize?: number
-    responseTokenSize?: number
-    chatId: string
-  }) => void
-  onError: (error: string) => void
+    promptTokenSize?: number;
+    responseTokenSize?: number;
+    chatId: string;
+  }) => void;
+  onError: (error: string) => void;
 }
 
 const API_URL =
   process.env.NODE_ENV === "production"
-    ? "https://chat-ai-server-axlescalada-axlescaladas-projects.vercel.app"
-    : "http://localhost:5000"
+    ? process.env.SERVER_URL
+    : "http://localhost:5000";
 
-const API_TIMEOUT = 60000 // 60 seconds timeout
+const API_TIMEOUT = 60000; // 60 seconds timeout
 
 const fetchWithTimeout = async (
   url: string,
   options: RequestInit = {},
   timeout = API_TIMEOUT,
 ): Promise<Response> => {
-  const controller = new AbortController()
-  const { signal } = controller
+  const controller = new AbortController();
+  const { signal } = controller;
 
   const timeoutId = setTimeout(() => {
-    controller.abort()
-  }, timeout)
+    controller.abort();
+  }, timeout);
 
   try {
     const response = await fetch(url, {
       ...options,
       signal,
-    })
+    });
 
-    clearTimeout(timeoutId)
-    return response
+    clearTimeout(timeoutId);
+    return response;
   } catch (error: any) {
-    clearTimeout(timeoutId)
+    clearTimeout(timeoutId);
     if (error.name === "AbortError") {
-      throw new Error(`Request timed out after ${timeout}ms`)
+      throw new Error(`Request timed out after ${timeout}ms`);
     }
-    throw error
+    throw error;
   }
-}
+};
 
 const safeJsonParse = async (response: Response): Promise<any> => {
   try {
-    return await response.json()
+    return await response.json();
   } catch (error) {
-    console.error("Error parsing JSON response:", error)
-    throw new Error("Failed to parse server response")
+    console.error("Error parsing JSON response:", error);
+    throw new Error("Failed to parse server response");
   }
-}
+};
 
 const getSessionId = (): string => {
-  let sessionId = localStorage.getItem("sessionId")
+  let sessionId = localStorage.getItem("sessionId");
   if (!sessionId) {
     sessionId =
-      "session-" + Date.now() + "-" + Math.random().toString(36).substring(2, 9)
-    localStorage.setItem("sessionId", sessionId)
+      "session-" +
+      Date.now() +
+      "-" +
+      Math.random().toString(36).substring(2, 9);
+    localStorage.setItem("sessionId", sessionId);
   }
-  return sessionId
-}
+  return sessionId;
+};
 
 export const createChat = async (
   initialPrompt?: string,
 ): Promise<ChatResponse> => {
   try {
-    const sessionId = getSessionId()
+    const sessionId = getSessionId();
 
     const response = await fetchWithTimeout(`${API_URL}/chats`, {
       method: "POST",
@@ -109,36 +112,36 @@ export const createChat = async (
         sessionId,
         initialPrompt,
       }),
-    })
+    });
 
     if (!response.ok) {
-      let errorMessage = `Server responded with status: ${response.status}`
+      let errorMessage = `Server responded with status: ${response.status}`;
 
       try {
-        const errorData = await safeJsonParse(response)
-        errorMessage = errorData.error || errorMessage
+        const errorData = await safeJsonParse(response);
+        errorMessage = errorData.error || errorMessage;
       } catch (parseError) {}
 
-      throw new Error(errorMessage)
+      throw new Error(errorMessage);
     }
 
-    const data = await safeJsonParse(response)
+    const data = await safeJsonParse(response);
 
-    console.log("Create chat response full data:", data)
+    console.log("Create chat response full data:", data);
 
     if (!data.chatId) {
-      console.error("Error: API response missing chatId property", data)
-      throw new Error("Server response missing chat ID")
+      console.error("Error: API response missing chatId property", data);
+      throw new Error("Server response missing chat ID");
     }
 
-    console.log("Using chat ID from server response:", data.chatId)
+    console.log("Using chat ID from server response:", data.chatId);
 
-    return data
+    return data;
   } catch (error) {
-    console.error("API Error during chat creation:", error)
-    throw error
+    console.error("API Error during chat creation:", error);
+    throw error;
   }
-}
+};
 
 export const sendMessage = async (
   prompt: string,
@@ -146,7 +149,7 @@ export const sendMessage = async (
 ): Promise<ApiResponse> => {
   try {
     if (!chatId) {
-      throw new Error("No chat ID provided to sendMessage")
+      throw new Error("No chat ID provided to sendMessage");
     }
 
     const response = await fetchWithTimeout(
@@ -163,38 +166,38 @@ export const sendMessage = async (
         }),
       },
       API_TIMEOUT,
-    )
+    );
 
     if (!response.ok) {
-      let errorMessage = `Server responded with status: ${response.status}`
+      let errorMessage = `Server responded with status: ${response.status}`;
 
       try {
-        const errorData = await safeJsonParse(response)
-        errorMessage = errorData.error || errorMessage
+        const errorData = await safeJsonParse(response);
+        errorMessage = errorData.error || errorMessage;
       } catch (parseError) {}
 
-      throw new Error(errorMessage)
+      throw new Error(errorMessage);
     }
 
-    const data = await safeJsonParse(response)
-    console.log("Message response full data:", data)
+    const data = await safeJsonParse(response);
+    console.log("Message response full data:", data);
 
     if (!data.hasOwnProperty("response")) {
-      console.warn("Response data missing 'response' property:", data)
+      console.warn("Response data missing 'response' property:", data);
       return {
         response:
           "I received your message, but the response format was unexpected.",
-      }
+      };
     }
 
-    return data
+    return data;
   } catch (error: any) {
-    console.error("API Error during message sending:", error)
+    console.error("API Error during message sending:", error);
 
     if (error.message.includes("timed out")) {
       throw new Error(
         "The request took too long to complete. Please try again or ask a simpler question.",
-      )
+      );
     }
 
     if (
@@ -203,12 +206,12 @@ export const sendMessage = async (
     ) {
       throw new Error(
         "Network error. Please check your internet connection and try again.",
-      )
+      );
     }
 
-    throw error
+    throw error;
   }
-}
+};
 
 export const sendStreamingMessage = async (
   prompt: string,
@@ -217,7 +220,7 @@ export const sendStreamingMessage = async (
   chatId?: string,
 ): Promise<void> => {
   try {
-    const sessionId = getSessionId()
+    const sessionId = getSessionId();
     const response = await fetch(`${API_URL}/prompt/stream`, {
       method: "POST",
       headers: {
@@ -229,87 +232,87 @@ export const sendStreamingMessage = async (
         createChat,
         sessionId,
       }),
-    })
+    });
 
     if (!response.ok || !response.body) {
-      throw new Error(`Server responded with status: ${response.status}`)
+      throw new Error(`Server responded with status: ${response.status}`);
     }
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ""
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
 
     while (true) {
-      const { done, value } = await reader.read()
+      const { done, value } = await reader.read();
 
       if (done) {
-        break
+        break;
       }
 
-      buffer += decoder.decode(value, { stream: true })
+      buffer += decoder.decode(value, { stream: true });
 
-      let boundaryIndex
+      let boundaryIndex;
       while ((boundaryIndex = buffer.indexOf("\n\n")) !== -1) {
-        const message = buffer.substring(0, boundaryIndex)
-        buffer = buffer.substring(boundaryIndex + 2)
+        const message = buffer.substring(0, boundaryIndex);
+        buffer = buffer.substring(boundaryIndex + 2);
 
         if (message.startsWith("data: ")) {
           try {
-            const data = JSON.parse(message.substring(6))
+            const data = JSON.parse(message.substring(6));
 
             switch (data.type) {
               case "connection_established":
-                console.log("Streaming connection established")
-                break
+                console.log("Streaming connection established");
+                break;
 
               case "content_chunk":
-                eventHandler.onChunk(data.text)
-                break
+                eventHandler.onChunk(data.text);
+                break;
 
               case "content_complete":
                 eventHandler.onComplete({
                   promptTokenSize: data.promptTokenSize,
                   responseTokenSize: data.responseTokenSize,
                   chatId: data.chatId,
-                })
-                return
+                });
+                return;
 
               case "error":
-                eventHandler.onError(data.message || "Unknown streaming error")
-                return
+                eventHandler.onError(data.message || "Unknown streaming error");
+                return;
 
               default:
-                console.warn("Unknown event type:", data.type)
+                console.warn("Unknown event type:", data.type);
             }
           } catch (parseError) {
-            console.error("Error parsing SSE message:", parseError, message)
-            eventHandler.onError("Failed to parse streaming message")
-            return
+            console.error("Error parsing SSE message:", parseError, message);
+            eventHandler.onError("Failed to parse streaming message");
+            return;
           }
         }
       }
     }
 
-    eventHandler.onError("Stream ended unexpectedly")
+    eventHandler.onError("Stream ended unexpectedly");
   } catch (error: any) {
-    console.error("API Error during streaming message:", error)
+    console.error("API Error during streaming message:", error);
 
     if (error.message.includes("timed out")) {
       eventHandler.onError(
         "The request took too long to complete. Please try again or ask a simpler question.",
-      )
+      );
     } else if (
       error.message.includes("NetworkError") ||
       error.message.includes("Failed to fetch")
     ) {
       eventHandler.onError(
         "Network error. Please check your internet connection and try again.",
-      )
+      );
     } else {
-      eventHandler.onError(error.message || "Unknown error occurred")
+      eventHandler.onError(error.message || "Unknown error occurred");
     }
   }
-}
+};
 
 export const getChat = async (chatId: string): Promise<any> => {
   try {
@@ -319,23 +322,23 @@ export const getChat = async (chatId: string): Promise<any> => {
         "Content-Type": "application/json",
       },
       mode: "cors",
-    })
+    });
 
     if (!response.ok) {
-      throw new Error(`Failed to load chat: ${response.status}`)
+      throw new Error(`Failed to load chat: ${response.status}`);
     }
 
-    const data = await safeJsonParse(response)
-    return data
+    const data = await safeJsonParse(response);
+    return data;
   } catch (error) {
-    console.error("Error loading chat:", error)
-    throw error
+    console.error("Error loading chat:", error);
+    throw error;
   }
-}
+};
 
 export const getUserChats = async (): Promise<any[]> => {
   try {
-    const sessionId = getSessionId()
+    const sessionId = getSessionId();
 
     const response = await fetchWithTimeout(
       `${API_URL}/sessions/${sessionId}/chats`,
@@ -346,20 +349,20 @@ export const getUserChats = async (): Promise<any[]> => {
         },
         mode: "cors",
       },
-    )
+    );
 
     if (!response.ok) {
-      throw new Error(`Failed to load chats: ${response.status}`)
+      throw new Error(`Failed to load chats: ${response.status}`);
     }
 
-    const chats = await safeJsonParse(response)
+    const chats = await safeJsonParse(response);
 
-    return chats
+    return chats;
   } catch (error) {
-    console.error("Error loading chats:", error)
-    return []
+    console.error("Error loading chats:", error);
+    return [];
   }
-}
+};
 
 export const getTokenCount = async (prompt: string): Promise<string> => {
   try {
@@ -372,22 +375,22 @@ export const getTokenCount = async (prompt: string): Promise<string> => {
       body: JSON.stringify({
         prompt,
       }),
-    })
+    });
 
     if (!response.ok) {
-      throw new Error("Failed to count tokens")
+      throw new Error("Failed to count tokens");
     }
 
-    return safeJsonParse(response)
+    return safeJsonParse(response);
   } catch (error) {
-    console.error("Error counting tokens:", error)
-    return ""
+    console.error("Error counting tokens:", error);
+    return "";
   }
-}
+};
 
 export const checkServerHealth = async (): Promise<boolean> => {
   try {
-    console.log("Checking server health...")
+    console.log("Checking server health...");
 
     const response = await fetchWithTimeout(
       `${API_URL}/health`,
@@ -399,13 +402,13 @@ export const checkServerHealth = async (): Promise<boolean> => {
         },
       },
       5000,
-    )
+    );
 
-    const isHealthy = response.ok
-    console.log(`Server health check: ${isHealthy ? "OK" : "Failed"}`)
-    return isHealthy
+    const isHealthy = response.ok;
+    console.log(`Server health check: ${isHealthy ? "OK" : "Failed"}`);
+    return isHealthy;
   } catch (error) {
-    console.error("Health check failed:", error)
-    return false
+    console.error("Health check failed:", error);
+    return false;
   }
-}
+};
