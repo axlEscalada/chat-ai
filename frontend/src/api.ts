@@ -40,8 +40,14 @@ export interface StreamEventHandler {
 
 const API_URL =
   process.env.NODE_ENV === "production"
-    ? process.env.SERVER_URL
+    ? process.env.NEXT_PUBLIC_SERVER_URL ||
+      "https://chat-ai-server-seven.vercel.app"
     : "http://localhost:5000";
+
+// For debugging
+console.log("Current API_URL:", API_URL);
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("NEXT_PUBLIC_SERVER_URL:", process.env.NEXT_PUBLIC_SERVER_URL);
 
 const API_TIMEOUT = 60000; // 60 seconds timeout
 
