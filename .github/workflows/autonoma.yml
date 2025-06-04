@@ -9,17 +9,31 @@ jobs:
     runs-on: ubuntu-latest
     name: Run Autonoma Tests
     steps:
-      - name: Run Folder Tests (cmbi84wla0178xv01zzf8o79n)
+      - name: Run Single Test (cmbi807au0172xv01dqu4drhi)
         id: step-1
-        uses: autonoma-ai/actions/folder-runner@v0.0.1
+        uses: autonoma-ai/actions/test-runner@v1
         with:
-          folder-id: "cmbi84wla0178xv01zzf8o79n"
+          test-id: "cmbi807au0172xv01dqu4drhi"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
           max-wait-time: "10"
-      - name: Show cmbi84wla0178xv01zzf8o79n results
+      - name: Show cmbi807au0172xv01dqu4drhi results
         if: always()
         run: |
           echo "Test status: ${{ steps.step-1.outputs.final-status }}"
           echo "Message: ${{ steps.step-1.outputs.message }}"
           echo "View results at: ${{ steps.step-1.outputs.url }}"
+      - name: Run Single Test (cmbi8t37d000g0q01wk9nfg78)
+        id: step-2
+        uses: autonoma-ai/actions/test-runner@v1
+        with:
+          test-id: "cmbi8t37d000g0q01wk9nfg78"
+          client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
+          client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
+          max-wait-time: "10"
+      - name: Show cmbi8t37d000g0q01wk9nfg78 results
+        if: always()
+        run: |
+          echo "Test status: ${{ steps.step-2.outputs.final-status }}"
+          echo "Message: ${{ steps.step-2.outputs.message }}"
+          echo "View results at: ${{ steps.step-2.outputs.url }}"
