@@ -11,12 +11,12 @@ jobs:
     steps:
       - name: Run Folder Tests (cmbi84wla0178xv01zzf8o79n)
         id: step-1
-        uses: autonoma-ai/actions/folder-runner@v1-test
+        uses: autonoma-ai/actions/folder-runner@v1
         with:
-          folder-id: 'cmbi84wla0178xv01zzf8o79n'
+          folder-id: "cmbi84wla0178xv01zzf8o79n"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
-          max-wait-time: '10'
+          max-wait-time: "10"
       - name: Show cmbi84wla0178xv01zzf8o79n results
         if: always()
         run: |
