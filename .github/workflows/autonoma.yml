@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Run Single Test (cmbi807au0172xv01dqu4drhi)
         id: step-1
-        uses: autonoma-ai/actions/test-runner@v0.0.1
+        uses: autonoma-ai/actions/test-runner@v1
         with:
           test-id: "cmbi807au0172xv01dqu4drhi"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
@@ -25,7 +25,7 @@ jobs:
           echo "View results at: ${{ steps.step-1.outputs.url }}"
       - name: Run Single Test (cmbi8t37d000g0q01wk9nfg78)
         id: step-2
-        uses: autonoma-ai/actions/test-runner@v0.0.1
+        uses: autonoma-ai/actions/test-runner@v1
         with:
           test-id: "cmbi8t37d000g0q01wk9nfg78"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
