@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Run Folder Tests (cmbi84wla0178xv01zzf8o79n)
         id: step-1
-        uses: autonoma-ai/actions/folder-runner@v1
+        uses: autonoma-ai/actions/folder-runner@v1-test
         with:
           folder-id: 'cmbi84wla0178xv01zzf8o79n'
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
