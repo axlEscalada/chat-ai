@@ -29,10 +29,35 @@ jobs:
         if: failure()
         run: |
           echo "Debugging API connectivity..."
-          curl -s -w "%{http_code}" \
-            -H "autonoma-client-id: cmbgklqtz000ixv01dfusk0un" \
-            -H "autonoma-client-secret: 8d1078d7f463fbb337d6a028567e24b1b2798ee7a9c4f24ca3e80c0e0fcfc955a85390c572ad18b3485a5802d2bf1b96" \
+          echo "Testing with actual failed run ID: ${{ steps.step-1.outputs.run-id }}"
+          # Test the failing URL
+          response1=$(curl -s -w "%{http_code}" \
+            -H "autonoma-client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}" \
+            -H "autonoma-client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}" \
             -H "Content-Type: application/json" \
             --connect-timeout 60 \
             --max-time 60 \
-            https://latest.prod.autonoma.app/api/run/folder/ooewop62i5ul1zhou5eby2vl
+            "https://latest.prod.autonoma.app/api/run/folder/${{ steps.step-1.outputs.run-id }}" \
+            -o response1.json)
+
+          echo "Response 1 HTTP code: ${response1: -3}"
+          if [ -f response1.json ]; then
+            echo "Response 1 body:"
+            cat response1.json
+          fi
+
+          # Also test without the subdomain path
+          response2=$(curl -s -w "%{http_code}" \
+            -H "autonoma-client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}" \
+            -H "autonoma-client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --connect-timeout 60 \
+            --max-time 60 \
+            "https://latest.prod.autonoma.app/api/run/${{ steps.step-1.outputs.run-id }}" \
+            -o response2.json)
+
+          echo "Response 2 HTTP code: ${response2: -3}"
+          if [ -f response2.json ]; then
+            echo "Response 2 body:"
+            cat response2.json
+          fi
