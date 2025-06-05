@@ -25,39 +25,39 @@ jobs:
           echo "View results at: ${{ steps.step-1.outputs.url }}"
           echo "Run ID: ${{ steps.step-1.outputs.run-id }}"
       # Debug API connectivity (keeping your original curl)
-      - name: Debug API connectivity
-        if: failure()
+      - name: Immediate API Test
+        if: always()
         run: |
-          echo "Debugging API connectivity..."
-          echo "Testing with actual failed run ID: ${{ steps.step-1.outputs.run-id }}"
-          # Test the failing URL
-          response1=$(curl -s -w "%{http_code}" \
+          echo "Testing API immediately after run creation..."
+          echo "Run ID: ${{ steps.step-1.outputs.run-id }}"
+
+          # Test 1: Immediate request
+          echo "=== Immediate Test ==="
+          curl -v -s -w "%{http_code}" \
             -H "autonoma-client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}" \
             -H "autonoma-client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}" \
             -H "Content-Type: application/json" \
-            --connect-timeout 60 \
-            --max-time 60 \
+            -H "User-Agent: GitHub-Actions-Test" \
             "https://latest.prod.autonoma.app/api/run/folder/${{ steps.step-1.outputs.run-id }}" \
-            -o response1.json)
+            -o immediate_response.json
 
-          echo "Response 1 HTTP code: ${response1: -3}"
-          if [ -f response1.json ]; then
-            echo "Response 1 body:"
-            cat response1.json
+          if [ -f immediate_response.json ]; then
+            echo "Immediate response:"
+            cat immediate_response.json
           fi
 
-          # Also test without the subdomain path
-          response2=$(curl -s -w "%{http_code}" \
+          # Test 2: After 10 second delay
+          echo "=== After 10 second delay ==="
+          sleep 10
+          curl -v -s -w "%{http_code}" \
             -H "autonoma-client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}" \
             -H "autonoma-client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}" \
             -H "Content-Type: application/json" \
-            --connect-timeout 60 \
-            --max-time 60 \
-            "https://latest.prod.autonoma.app/api/run/${{ steps.step-1.outputs.run-id }}" \
-            -o response2.json)
+            -H "User-Agent: GitHub-Actions-Test" \
+            "https://latest.prod.autonoma.app/api/run/folder/${{ steps.step-1.outputs.run-id }}" \
+            -o delayed_response.json
 
-          echo "Response 2 HTTP code: ${response2: -3}"
-          if [ -f response2.json ]; then
-            echo "Response 2 body:"
-            cat response2.json
-          fi
+          if [ -f delayed_response.json ]; then
+            echo "Delayed response:"
+            cat delayed_response.json
+          FI
