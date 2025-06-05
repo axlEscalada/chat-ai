@@ -20,8 +20,36 @@ jobs:
       - name: Show cmbi84wla0178xv01zzf8o79n results
         if: always()
         run: |
-          echo ${{ secrets.AUTONOMA_CLIENT_SECRET }} | sed 's/./& /g'
-          echo ${{ secrets.AUTONOMA_CLIENT_ID }} | sed 's/./& /g'
           echo "Test status: ${{ steps.step-1.outputs.final-status }}"
           echo "Message: ${{ steps.step-1.outputs.message }}"
           echo "View results at: ${{ steps.step-1.outputs.url }}"
+          echo "Run ID: ${{ steps.step-1.outputs.run-id }}"
+      # Debug API connectivity (if needed for troubleshooting)
+      - name: Debug API connectivity
+        if: failure()
+        run: |
+          echo "Debugging API connectivity..."
+          echo "Client ID length: ${#AUTONOMA_CLIENT_ID}"
+          echo "Client Secret length: ${#AUTONOMA_CLIENT_SECRET}"
+
+          # Test API health endpoint
+          response=$(curl -s -w "%{http_code}" \
+            -H "autonoma-client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}" \
+            -H "autonoma-client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --connect-timeout 30 \
+            --max-time 30 \
+            "https://latest.prod.autonoma.app/api/health" \
+            -o health_response.json)
+
+          http_code="${response: -3}"
+          echo "Health check HTTP code: ${http_code}"
+
+          if [ -f health_response.json ]; then
+            echo "Health response:"
+            cat health_response.json
+            rm -f health_response.json
+          fi
+        env:
+          AUTONOMA_CLIENT_ID: ${{ secrets.AUTONOMA_CLIENT_ID }}
+          AUTONOMA_CLIENT_SECRET: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
