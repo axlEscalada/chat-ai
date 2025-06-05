@@ -35,4 +35,4 @@ jobs:
             -H "Content-Type: application/json" \
             --connect-timeout 60 \
             --max-time 60 \
-            https://latest.prod.autonoma.app/api/run/folder/z8piqlr9dtg57y8qlrvdiqkf
+            https://latest.prod.autonoma.app/api/run/folder/ooewop62i5ul1zhou5eby2vl
