@@ -5,48 +5,64 @@ on:
   pull_request:
     branches: [main]
 jobs:
-  run_autonoma_tests:
+  folder-tests:
     runs-on: ubuntu-latest
-    name: Run Autonoma Tests
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: "Folder Tests"
-            type: "folder"
-            id: "cmbi84wla0178xv01zzf8o79n"
-            action: "autonoma-ai/actions/folder-runner@v1"
-          - name: "Single Test"
-            type: "test"
-            id: "cmabkzdea001zxk01sp1mnygy"
-            action: "autonoma-ai/actions/test-runner@v1"
+    name: Run Folder Tests
     steps:
-      - name: Run ${{ matrix.name }}
-        id: test-run
-        uses: ${{ matrix.action }}
+      - name: Run Folder Tests (cmbi84wla0178xv01zzf8o79n)
+        id: folder-test
+        uses: autonoma-ai/actions/folder-runner@v1
         continue-on-error: true
         with:
-          ${{ matrix.type }}-id: ${{ matrix.id }}
+          folder-id: "cmbi84wla0178xv01zzf8o79n"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
           max-wait-time: "10"
       - name: Show Results
         if: always()
         run: |
-          echo "Test: ${{ matrix.name }}"
-          echo "Status: ${{ steps.test-run.outputs.final-status }}"
-          echo "Message: ${{ steps.test-run.outputs.message }}"
-          echo "View results at: ${{ steps.test-run.outputs.url }}"
-          echo "Outcome: ${{ steps.test-run.outcome }}"
+          echo "Test status: ${{ steps.folder-test.outputs.final-status }}"
+          echo "Message: ${{ steps.folder-test.outputs.message }}"
+          echo "View results at: ${{ steps.folder-test.outputs.url }}"
       - name: Set Job Status
-        if: steps.test-run.outcome == 'failure'
+        if: steps.folder-test.outcome == 'failure'
+        run: exit 1
+  single-test:
+    runs-on: ubuntu-latest
+    name: Run Single Test
+    steps:
+      - name: Run Single Test (cmabkzdea001zxk01sp1mnygy)
+        id: single-test
+        uses: autonoma-ai/actions/test-runner@v1
+        continue-on-error: true
+        with:
+          test-id: "cmabkzdea001zxk01sp1mnygy"
+          client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
+          client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
+          max-wait-time: "10"
+      - name: Show Results
+        if: always()
+        run: |
+          echo "Test status: ${{ steps.single-test.outputs.final-status }}"
+          echo "Message: ${{ steps.single-test.outputs.message }}"
+          echo "View results at: ${{ steps.single-test.outputs.url }}"
+      - name: Set Job Status
+        if: steps.single-test.outcome == 'failure'
         run: exit 1
   summary:
-    needs: run_autonoma_tests
+    needs: [folder-tests, single-test]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Summary
         run: |
-          echo "Test run completed"
-          echo "Overall status: ${{ needs.run_autonoma_tests.result }}"
+          echo "All tests completed"
+          echo "Folder tests: ${{ needs.folder-tests.result }}"
+          echo "Single test: ${{ needs.single-test.result }}"
+
+          if [[ "${{ needs.folder-tests.result }}" == "failure" ]] || [[ "${{ needs.single-test.result }}" == "failure" ]]; then
+            echo "::error::Some tests failed. You can re-run failed jobs from the Actions tab."
+            exit 1
+          else
+            echo "::notice::All tests passed!"
+          fi
