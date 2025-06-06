@@ -8,34 +8,45 @@ jobs:
   run_autonoma_tests:
     runs-on: ubuntu-latest
     name: Run Autonoma Tests
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "Folder Tests"
+            type: "folder"
+            id: "cmbi84wla0178xv01zzf8o79n"
+            action: "autonoma-ai/actions/folder-runner@v1"
+          - name: "Single Test"
+            type: "test"
+            id: "cmabkzdea001zxk01sp1mnygy"
+            action: "autonoma-ai/actions/test-runner@v1"
     steps:
-      - name: Run Folder Tests (cmbi84wla0178xv01zzf8o79n)
-        id: step-1
-        uses: autonoma-ai/actions/folder-runner@v1
+      - name: Run ${{ matrix.name }}
+        id: test-run
+        uses: ${{ matrix.action }}
         continue-on-error: true
         with:
-          folder-id: "cmbi84wla0178xv01zzf8o79n"
+          ${{ matrix.type }}-id: ${{ matrix.id }}
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
           max-wait-time: "10"
-      - name: Show cmbi84wla0178xv01zzf8o79n results
+      - name: Show Results
         if: always()
         run: |
-          echo "Test status: ${{ steps.step-1.outputs.final-status }}"
-          echo "Message: ${{ steps.step-1.outputs.message }}"
-          echo "View results at: ${{ steps.step-1.outputs.url }}"
-      - name: Run Single Test (cmabkzdea001zxk01sp1mnygy)
-        id: step-2
-        uses: autonoma-ai/actions/test-runner@v1
-        continue-on-error: true
-        with:
-          test-id: "cmabkzdea001zxk01sp1mnygy"
-          client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
-          client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
-          max-wait-time: "10"
-      - name: Show cmabkzdea001zxk01sp1mnygy results
-        if: always()
+          echo "Test: ${{ matrix.name }}"
+          echo "Status: ${{ steps.test-run.outputs.final-status }}"
+          echo "Message: ${{ steps.test-run.outputs.message }}"
+          echo "View results at: ${{ steps.test-run.outputs.url }}"
+          echo "Outcome: ${{ steps.test-run.outcome }}"
+      - name: Set Job Status
+        if: steps.test-run.outcome == 'failure'
+        run: exit 1
+  summary:
+    needs: run_autonoma_tests
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Summary
         run: |
-          echo "Test status: ${{ steps.step-2.outputs.final-status }}"
-          echo "Message: ${{ steps.step-2.outputs.message }}"
-          echo "View results at: ${{ steps.step-2.outputs.url }}"
+          echo "Test run completed"
+          echo "Overall status: ${{ needs.run_autonoma_tests.result }}"
