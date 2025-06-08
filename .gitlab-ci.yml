@@ -3,24 +3,13 @@ stages:
 variables:
   AUTONOMA_CLIENT_ID: $AUTONOMA_CLIENT_ID
   AUTONOMA_CLIENT_SECRET: $AUTONOMA_CLIENT_SECRET
-run-test-cmbfh59ok000bp4mkbloinv1z:
+run-test-cmbi8t37d000g0q01wk9nfg78:
   stage: test
   image: axlscld/autonoma-runner:1.0.0
   script:
     - |
-      echo "Running Run Single Test 'test-for-job'"
-      # The scripts are in /autonoma directory in the container
-      /autonoma/run-test.sh \
-        "https://api.autonoma.ai/trigger" \
-        "cmbfh59ok000bp4mkbloinv1z" \
-        "10" \
-        "$AUTONOMA_CLIENT_ID" \
-        "$AUTONOMA_CLIENT_SECRET"
-
-      # Poll for status
-      /autonoma/poll-status.sh \
-        "https://api.autonoma.ai/status" \
-        "cmbfh59ok000bp4mkbloinv1z" \
+      /autonoma/gitlab-run-test.sh \
+        "cmbi8t37d000g0q01wk9nfg78" \
         "10" \
         "$AUTONOMA_CLIENT_ID" \
         "$AUTONOMA_CLIENT_SECRET" \
