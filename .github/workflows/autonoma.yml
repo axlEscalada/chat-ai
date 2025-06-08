@@ -7,17 +7,17 @@ on:
 jobs:
   run-test-cm8ivivig003qzcsxm8adeuom:
     runs-on: ubuntu-latest
-    name: Run Autonoma Tests
+    name: Run Autonoma Tests (cm8ivivig003qzcsxm8adeuom)
     steps:
-      - name: Run Single Test (cmbjnn80b003r010126wihtu1)
+      - name: Run Single Test (cm8ivivig003qzcsxm8adeuom)
         id: step-1
         uses: autonoma-ai/actions/test-runner@v1
         with:
-          test-id: "cmbjnn80b003r010126wihtu1"
+          test-id: "cm8ivivig003qzcsxm8adeuom"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
           max-wait-time: "10"
-      - name: Show cmbjnn80b003r010126wihtu1 results
+      - name: Show cm8ivivig003qzcsxm8adeuom results
         if: always()
         run: |
           echo "Test status: ${{ steps.step-1.outputs.final-status }}"
@@ -25,17 +25,17 @@ jobs:
           echo "View results at: ${{ steps.step-1.outputs.url }}"
   run-folder-cmbjpl99c0001p4yg40qfygel:
     runs-on: ubuntu-latest
-    name: Run Autonoma Tests
+    name: Run Autonoma Tests (cmbjpl99c0001p4yg40qfygel)
     steps:
-      - name: Run Folder Tests (cmbi84wla0178xv01zzf8o79n)
+      - name: Run Folder Tests (cmbjpl99c0001p4yg40qfygel)
         id: step-2
         uses: autonoma-ai/actions/folder-runner@v1
         with:
-          folder-id: "cmbi84wla0178xv01zzf8o79n"
+          folder-id: "cmbjpl99c0001p4yg40qfygel"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
           max-wait-time: "10"
-      - name: Show cmbi84wla0178xv01zzf8o79n results
+      - name: Show cmbjpl99c0001p4yg40qfygel results
         if: always()
         run: |
           echo "Test status: ${{ steps.step-2.outputs.final-status }}"
