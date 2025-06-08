@@ -3,12 +3,11 @@ stages:
 variables:
   AUTONOMA_CLIENT_ID: $AUTONOMA_CLIENT_ID
   AUTONOMA_CLIENT_SECRET: $AUTONOMA_CLIENT_SECRET
-run-folder-cmbjpl99c0001p4yg40qfygel:
-  name: "test-folder"
+"test-folder":
   stage: test
   image: axlscld/autonoma-runner:1.0.0
   variables:
-    ITEM_ID: "cmbjpl99c0001p4yg40qfygel"
+    ITEM_ID: "cmbi84wla0178xv01zzf8o79n"
     ITEM_TYPE: "folder"
     MAX_WAIT_TIME: "10"
   script:
@@ -20,12 +19,11 @@ run-folder-cmbjpl99c0001p4yg40qfygel:
         "$AUTONOMA_CLIENT_SECRET" \
         "$ITEM_TYPE"
   when: always
-run-test-cmbf7f3ko0003p4y8r7spvguf:
-  name: "Search and subscribe ThePrimeagen"
+"Search and subscribe ThePrimeagen":
   stage: test
   image: axlscld/autonoma-runner:1.0.0
   variables:
-    ITEM_ID: "cmbf7f3ko0003p4y8r7spvguf"
+    ITEM_ID: "cmbi8t37d000g0q01wk9nfg78"
     ITEM_TYPE: "test"
     MAX_WAIT_TIME: "10"
   script:
