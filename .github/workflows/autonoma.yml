@@ -5,37 +5,37 @@ on:
   pull_request:
     branches: [main]
 jobs:
-  run-test-cm8ivivig003qzcsxm8adeuom:
+  run-test-cmbi8t37d000g0q01wk9nfg78:
     runs-on: ubuntu-latest
-    name: Run Autonoma Tests (cm8ivivig003qzcsxm8adeuom)
+    name: Run Autonoma Tests (cmbi8t37d000g0q01wk9nfg78)
     steps:
-      - name: Run Single Test (cm8ivivig003qzcsxm8adeuom)
+      - name: Run Single Test (cmbi8t37d000g0q01wk9nfg78)
         id: step-1
         uses: autonoma-ai/actions/test-runner@v1
         with:
-          test-id: "cm8ivivig003qzcsxm8adeuom"
+          test-id: "cmbi8t37d000g0q01wk9nfg78"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
           max-wait-time: "10"
-      - name: Show cm8ivivig003qzcsxm8adeuom results
+      - name: Show cmbi8t37d000g0q01wk9nfg78 results
         if: always()
         run: |
           echo "Test status: ${{ steps.step-1.outputs.final-status }}"
           echo "Message: ${{ steps.step-1.outputs.message }}"
           echo "View results at: ${{ steps.step-1.outputs.url }}"
-  run-folder-cmbjpl99c0001p4yg40qfygel:
+  run-folder-cmbi84wla0178xv01zzf8o79n:
     runs-on: ubuntu-latest
-    name: Run Autonoma Tests (cmbjpl99c0001p4yg40qfygel)
+    name: Run Autonoma Tests (cmbi84wla0178xv01zzf8o79n)
     steps:
-      - name: Run Folder Tests (cmbjpl99c0001p4yg40qfygel)
+      - name: Run Folder Tests (cmbi84wla0178xv01zzf8o79n)
         id: step-2
         uses: autonoma-ai/actions/folder-runner@v1
         with:
-          folder-id: "cmbjpl99c0001p4yg40qfygel"
+          folder-id: "cmbi84wla0178xv01zzf8o79n"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
           max-wait-time: "10"
-      - name: Show cmbjpl99c0001p4yg40qfygel results
+      - name: Show cmbi84wla0178xv01zzf8o79n results
         if: always()
         run: |
           echo "Test status: ${{ steps.step-2.outputs.final-status }}"
