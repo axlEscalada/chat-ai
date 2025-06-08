@@ -5,7 +5,7 @@ variables:
   AUTONOMA_CLIENT_SECRET: $AUTONOMA_CLIENT_SECRET
 "test-folder":
   stage: test
-  image: axlscld/autonoma-runner:1.0.0
+  image: axlscld/autonoma-runner@sha256:680a24bb865f43b1197c5b6f7f0632f6cd7e33bcc0ed23fdcfb090647f289845
   variables:
     ITEM_ID: "cmbjpl99c0001p4yg40qfygel"
     ITEM_TYPE: "folder"
