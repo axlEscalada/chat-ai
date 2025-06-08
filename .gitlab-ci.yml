@@ -1,13 +1,13 @@
 stages:
   - test
-
 variables:
   AUTONOMA_CLIENT_ID: $AUTONOMA_CLIENT_ID
   AUTONOMA_CLIENT_SECRET: $AUTONOMA_CLIENT_SECRET
-
 "test-folder":
   stage: test
-  image: axlscld/autonoma-runner:1.0.0
+  image:
+    name: axlscld/autonoma-runner:1.0.0
+    pull_policy: always
   variables:
     ITEM_ID: "cmbjpl99c0001p4yg40qfygel"
     ITEM_TYPE: "folder"
