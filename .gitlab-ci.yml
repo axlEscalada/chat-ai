@@ -5,9 +5,7 @@ variables:
   AUTONOMA_CLIENT_SECRET: $AUTONOMA_CLIENT_SECRET
 "test-folder":
   stage: test
-  image:
-    name: axlscld/autonoma-runner:1.0.0
-    pull_policy: always
+  image: axlscld/autonoma-runner:1.0.2
   variables:
     ITEM_ID: "cmbjpl99c0001p4yg40qfygel"
     ITEM_TYPE: "folder"
@@ -23,7 +21,7 @@ variables:
   when: always
 "test-for-job":
   stage: test
-  image: axlscld/autonoma-runner:1.0.0
+  image: axlscld/autonoma-runner:1.0.4
   variables:
     ITEM_ID: "cmbfh59ok000bp4mkbloinv1z"
     ITEM_TYPE: "test"
