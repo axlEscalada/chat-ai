@@ -5,7 +5,7 @@ variables:
   AUTONOMA_CLIENT_SECRET: $AUTONOMA_CLIENT_SECRET
 run-test-cmbi8t37d000g0q01wk9nfg78:
   stage: test
-  image: axlscld/autonoma-runner:1.0.0
+  image: axlscld/autonoma-runner:1.1.0
   script:
     - |
       /autonoma/gitlab-run-test.sh \
@@ -14,4 +14,16 @@ run-test-cmbi8t37d000g0q01wk9nfg78:
         "$AUTONOMA_CLIENT_ID" \
         "$AUTONOMA_CLIENT_SECRET" \
         "test"
+  when: always
+run-folder-cmbi84wla0178xv01zzf8o79n:
+  stage: test
+  image: axlscld/autonoma-runner:1.1.0
+  script:
+    - |
+      /autonoma/gitlab-run-test.sh \
+        "cmbi84wla0178xv01zzf8o79n" \
+        "10" \
+        "$AUTONOMA_CLIENT_ID" \
+        "$AUTONOMA_CLIENT_SECRET" \
+        "folder"
   when: always
