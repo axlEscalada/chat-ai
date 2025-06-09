@@ -5,9 +5,9 @@ variables:
   AUTONOMA_CLIENT_SECRET: $AUTONOMA_CLIENT_SECRET
 "test-folder":
   stage: test
-  image: axlscld/autonoma-runner@sha256:680a24bb865f43b1197c5b6f7f0632f6cd7e33bcc0ed23fdcfb090647f289845
+  image: axlscld/autonoma-runner:1.0.0
   variables:
-    ITEM_ID: "cmbjpl99c0001p4yg40qfygel"
+    ITEM_ID: "cmbi84wla0178xv01zzf8o79n"
     ITEM_TYPE: "folder"
     MAX_WAIT_TIME: "10"
   script:
@@ -23,7 +23,7 @@ variables:
   stage: test
   image: axlscld/autonoma-runner:1.0.0
   variables:
-    ITEM_ID: "cmbfh59ok000bp4mkbloinv1z"
+    ITEM_ID: "cmbi8t37d000g0q01wk9nfg78"
     ITEM_TYPE: "test"
     MAX_WAIT_TIME: "10"
   script:
