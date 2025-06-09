@@ -13,7 +13,7 @@ jobs:
         id: step-1
         uses: autonoma-ai/actions/folder-runner@v1
         with:
-          folder-id: "cmbi8t37d000g0q01wk9nfg78"
+          folder-id: "cmbi84wla0178xv01zzf8o79n"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
           max-wait-time: "10"
@@ -31,7 +31,7 @@ jobs:
         id: step-2
         uses: autonoma-ai/actions/test-runner@v1
         with:
-          test-id: "cmbi84wla0178xv01zzf8o79n"
+          test-id: "cmabkzdea001zxk01sp1mnygy"
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
           max-wait-time: "10"
