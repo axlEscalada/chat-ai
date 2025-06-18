@@ -5,21 +5,39 @@ on:
   pull_request:
     branches: [main]
 jobs:
-  run-folder-cmbjpl99c0001p4yg40qfygel:
+  run-test-cmbsjiobo00j6060155jfdtf3:
     runs-on: ubuntu-latest
-    name: Autonoma Test "test-folder"
+    name: Autonoma Test "New debit card"
     steps:
-      - name: Run Folder Tests "test-folder"
+      - name: Run Single Test "New debit card"
         id: step-1
-        uses: autonoma-ai/actions/folder-runner@v1.1
+        uses: autonoma-ai/actions/test-runner@v1
         with:
-          folder-id: "cmbi84wla0178xv01zzf8o79n"
+          test-id: 'cmbsjiobo00j6060155jfdtf3'
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
-          max-wait-time: "10" #IN MINUTES
-      - name: Show "test-folder" results
+          max-wait-time: '10' #IN MINUTES
+      - name: Show "New debit card" results
         if: always()
         run: |
           echo "Test status: ${{ steps.step-1.outputs.final-status }}"
           echo "Message: ${{ steps.step-1.outputs.message }}"
           echo "View results at: ${{ steps.step-1.outputs.url }}"
+  run-folder-cmbsjlcec00j806010iaw716y:
+    runs-on: ubuntu-latest
+    name: Autonoma Test "Autonoma bank"
+    steps:
+      - name: Run Folder Tests "Autonoma bank"
+        id: step-2
+        uses: autonoma-ai/actions/folder-runner@v1
+        with:
+          folder-id: 'cmbsjlcec00j806010iaw716y'
+          client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
+          client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
+          max-wait-time: '10' #IN MINUTES
+      - name: Show "Autonoma bank" results
+        if: always()
+        run: |
+          echo "Test status: ${{ steps.step-2.outputs.final-status }}"
+          echo "Message: ${{ steps.step-2.outputs.message }}"
+          echo "View results at: ${{ steps.step-2.outputs.url }}"

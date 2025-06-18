@@ -3,13 +3,13 @@ stages:
 variables:
   AUTONOMA_CLIENT_ID: $AUTONOMA_CLIENT_ID
   AUTONOMA_CLIENT_SECRET: $AUTONOMA_CLIENT_SECRET
-"test-folder":
+"New debit card":
   stage: test
   image: axlscld/autonoma-runner:1.0.0
   variables:
-    ITEM_ID: "cmbi84wla0178xv01zzf8o79n"
-    ITEM_TYPE: "folder"
-    MAX_WAIT_TIME: "10"
+    ITEM_ID: "cmbsjiobo00j6060155jfdtf3"
+    ITEM_TYPE: "test"
+    MAX_WAIT_TIME: "10" #IN MINUTES
   script:
     - |
       /autonoma/wrapper-run-test.sh \
@@ -19,13 +19,13 @@ variables:
         "$AUTONOMA_CLIENT_SECRET" \
         "$ITEM_TYPE"
   when: always
-"test-for-job":
+"Autonoma bank":
   stage: test
   image: axlscld/autonoma-runner:1.0.0
   variables:
-    ITEM_ID: "cmbi8t37d000g0q01wk9nfg78"
-    ITEM_TYPE: "test"
-    MAX_WAIT_TIME: "10"
+    ITEM_ID: "cmbsjlcec00j806010iaw716y"
+    ITEM_TYPE: "folder"
+    MAX_WAIT_TIME: "10" #IN MINUTES
   script:
     - |
       /autonoma/wrapper-run-test.sh \
