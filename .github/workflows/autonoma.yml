@@ -4,7 +4,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:  # Add this line
+  workflow_dispatch:
+    inputs:
+      run_identifier:
+        description: 'Unique identifier for this run'
+        required: false
+        default: ''
 jobs:
   run-test-cmbsjiobo00j6060155jfdtf3:
     runs-on: ubuntu-latest
