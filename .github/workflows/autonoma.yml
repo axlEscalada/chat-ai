@@ -4,6 +4,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:  # Add this line
 jobs:
   run-test-cmbsjiobo00j6060155jfdtf3:
     runs-on: ubuntu-latest
