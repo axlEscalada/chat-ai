@@ -179,7 +179,6 @@ npm start
 ```
 
 ## API Documentation
-
 The backend provides the following API endpoints:
 
 - `POST /api/chats`: Create a new chat
