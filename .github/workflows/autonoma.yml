@@ -12,12 +12,12 @@ jobs:
     steps:
       - name: Run Folder Tests "Autonoma bank"
         id: step-1
-        uses: autonoma-ai/actions/folder-runner@v1.1
+        uses: autonoma-ai/actions/folder-runner@v2
         with:
           folder-id: 'cmbsjlcec00j806010iaw716y'
           application-versions: |
-            - application-id: 'cma1gj6w800mexs01n1g1yjak'
-              version-id: 'cmeww6jtv001z5g01xyczbx2s'
+            - application-id: 'cma1gj6w800mexs01n1g1yjak'  # v0-mercury-bank-webapp.vercel.app
+              version-id: 'cma1gj6wo00mgxs013ov7tesb'
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
           blocking: false # Non-blocking by default
@@ -29,3 +29,27 @@ jobs:
           echo "Test status: ${{ steps.step-1.outputs.final-status }}"
           echo "Message: ${{ steps.step-1.outputs.message }}"
           echo "View results at: ${{ steps.step-1.outputs.url }}"
+  run-test-cmeww70r200245g01ore8iakt:
+    runs-on: ubuntu-latest
+    name: Autonoma Test "Add a new contact"
+ 
+    steps:
+      - name: Run Single Test "Add a new contact"
+        id: step-2
+        uses: autonoma-ai/actions/test-runner@v2
+        with:
+          test-id: 'cmeww70r200245g01ore8iakt'
+          application-versions: |
+            - application-id: 'cma1gj6w800mexs01n1g1yjak'  # v0-mercury-bank-webapp.vercel.app
+              version-id: 'cma1gj6wo00mgxs013ov7tesb'
+          client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
+          client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
+          blocking: false # Non-blocking by default
+          max-wait-time: '10' # Timeout for blocking scenario
+          
+      - name: Show "Add a new contact" results
+        if: always()
+        run: |
+          echo "Test status: ${{ steps.step-2.outputs.final-status }}"
+          echo "Message: ${{ steps.step-2.outputs.message }}"
+          echo "View results at: ${{ steps.step-2.outputs.url }}"
