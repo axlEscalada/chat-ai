@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Run Folder Tests "Autonoma bank"
         id: step-1
-        uses: autonoma-ai/actions/folder-runner@v2
+        uses: autonoma-ai/actions/folder-runner@v1.1
         with:
           folder-id: 'cmbsjlcec00j806010iaw716y'
           application-versions: |
@@ -36,7 +36,7 @@ jobs:
     steps:
       - name: Run Single Test "Add a new contact"
         id: step-2
-        uses: autonoma-ai/actions/test-runner@v2
+        uses: autonoma-ai/actions/test-runner@v1.1
         with:
           test-id: 'cmeww70r200245g01ore8iakt'
           application-versions: |
