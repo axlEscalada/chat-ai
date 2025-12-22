@@ -5,22 +5,27 @@ on:
   pull_request:
     branches: [main]
 jobs:
-  run-test-cmddlmcte000tw0015nbmv6hd:
+  run-folder-cmbsjlcec00j806010iaw716y:
     runs-on: ubuntu-latest
-    name: Autonoma Test "Github action healthcheck autonoma test"
+    name: Autonoma Test "Autonoma bank"
+ 
     steps:
-      - name: Run Single Test "Github action healthcheck autonoma test"
+      - name: Run Folder Tests "Autonoma bank"
         id: step-1
-        uses: autonoma-ai/actions/test-runner@v1
+        uses: autonoma-ai/actions/folder-runner@v1.1
         with:
-          test-id: 'cmddlmcte000tw0015nbmv6hd'
-          client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
-          client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
-          max-wait-time: '10' #IN MINUTES
-      - name: Show "Github action healthcheck autonoma test" results
+          folder-id: 'cmbsjlcec00j806010iaw716y'
+          application-versions:
+          - application-id: 'cma1gj6w800mexs01n1g1yjak'
+            version-id: 'cma1gj6wo00mgxs013ov7tesb'
+          client-id: cmfh3x1hg000a6m01lx7tmeau
+          client-secret: <YOUR_CLIENT_SECRET>
+          blocking: false # Non-blocking by default
+          max-wait-time: '10' # Timeout for blocking scenario
+          
+      - name: Show "Autonoma bank" results
         if: always()
         run: |
           echo "Test status: ${{ steps.step-1.outputs.final-status }}"
           echo "Message: ${{ steps.step-1.outputs.message }}"
-          echo "View results at: ${{ steps.step-1.outputs.url }}"
-          echo "ECHO"
+          echo "View results at: ${{ steps.step-1.outputs.url }}
