@@ -11,7 +11,7 @@ variables:
   variables:
     ITEM_ID: "cmbsjlcec00j806010iaw716y"
     ITEM_TYPE: "folder"
-    MAX_WAIT_TIME: "10" #IN MINUTES
+    MAX_WAIT_TIME: "10"
     APP_VERSIONS: |
       - application-id: 'cma1gj6w800mexs01n1g1yjak'  # v0-mercury-bank-webapp.vercel.app
         version-id: 'cmeww6jtv001z5g01xyczbx2s'
