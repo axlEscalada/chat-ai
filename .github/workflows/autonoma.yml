@@ -15,9 +15,9 @@ jobs:
         uses: autonoma-ai/actions/folder-runner@v1.1
         with:
           folder-id: 'cmbsjlcec00j806010iaw716y'
-          application-versions:
-          - application-id: 'cma1gj6w800mexs01n1g1yjak'
-            version-id: 'cma1gj6wo00mgxs013ov7tesb'
+          application-versions: |
+            - application-id: 'cma1gj6w800mexs01n1g1yjak'  # v0-mercury-bank-webapp.vercel.app
+              version-id: 'cmeww6jtv001z5g01xyczbx2s'
           client-id: cmfh3x1hg000a6m01lx7tmeau
           client-secret: <YOUR_CLIENT_SECRET>
           blocking: false # Non-blocking by default
