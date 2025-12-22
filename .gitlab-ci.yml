@@ -1,10 +1,6 @@
 stages:
   - test
 
-variables:
-  AUTONOMA_CLIENT_ID: $AUTONOMA_CLIENT_ID
-  AUTONOMA_CLIENT_SECRET: $AUTONOMA_CLIENT_SECRET
-
 "Autonoma bank":
   stage: test
   image: axlscld/autonoma-runner:1.1.0
