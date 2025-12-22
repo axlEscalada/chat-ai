@@ -1,31 +1,21 @@
 stages:
   - test
+
 variables:
   AUTONOMA_CLIENT_ID: $AUTONOMA_CLIENT_ID
   AUTONOMA_CLIENT_SECRET: $AUTONOMA_CLIENT_SECRET
-"New debit card":
-  stage: test
-  image: axlscld/autonoma-runner:1.0.0
-  variables:
-    ITEM_ID: "cmbsjiobo00j6060155jfdtf3"
-    ITEM_TYPE: "test"
-    MAX_WAIT_TIME: "10" #IN MINUTES
-  script:
-    - |
-      /autonoma/wrapper-run-test.sh \
-        "$ITEM_ID" \
-        "$MAX_WAIT_TIME" \
-        "$AUTONOMA_CLIENT_ID" \
-        "$AUTONOMA_CLIENT_SECRET" \
-        "$ITEM_TYPE"
-  when: always
+
 "Autonoma bank":
   stage: test
-  image: axlscld/autonoma-runner:1.0.0
+  image: axlscld/autonoma-runner:1.1.0
   variables:
     ITEM_ID: "cmbsjlcec00j806010iaw716y"
     ITEM_TYPE: "folder"
     MAX_WAIT_TIME: "10" #IN MINUTES
+    APP_VERSIONS: |
+      - application-id: 'cma1gj6w800mexs01n1g1yjak'  # v0-mercury-bank-webapp.vercel.app
+        version-id: 'cmeww6jtv001z5g01xyczbx2s'
+    BLOCKING: "false" # Non-blocking by default
   script:
     - |
       /autonoma/wrapper-run-test.sh \
@@ -33,5 +23,7 @@ variables:
         "$MAX_WAIT_TIME" \
         "$AUTONOMA_CLIENT_ID" \
         "$AUTONOMA_CLIENT_SECRET" \
-        "$ITEM_TYPE"
+        "$ITEM_TYPE" \
+        "$APP_VERSIONS" \
+        "$BLOCKING"
   when: always
