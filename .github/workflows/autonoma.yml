@@ -16,7 +16,7 @@ jobs:
         with:
           folder-id: 'cmbsjlcec00j806010iaw716y'
           application-versions: |
-            - application-id: 'cma1gj6w800mexs01n1g1yjak'  # v0-mercury-bank-webapp.vercel.app
+            - application-id: 'cma1gj6w800mexs01n1g1yjak'
               version-id: 'cmeww6jtv001z5g01xyczbx2s'
           client-id: ${{ secrets.AUTONOMA_CLIENT_ID }}
           client-secret: ${{ secrets.AUTONOMA_CLIENT_SECRET }}
