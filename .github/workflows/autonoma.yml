@@ -8,7 +8,6 @@ jobs:
   run-folder-cmj27hg4s00087z01kh44brwg:
     runs-on: ubuntu-latest
     name: Autonoma Test "Tests"
- 
     steps:
       - name: Run Folder Tests "Tests"
         id: step-1
