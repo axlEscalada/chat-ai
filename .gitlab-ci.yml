@@ -13,13 +13,6 @@ stages:
         version-id: 'cmeww6jtv001z5g01xyczbx2s'
     BLOCKING: "false"
   script:
-    - echo "=== Environment Check ==="
-    - echo "AUTONOMA_CLIENT_ID length:" ${#AUTONOMA_CLIENT_ID}
-    - echo "AUTONOMA_CLIENT_SECRET length:" ${#AUTONOMA_CLIENT_SECRET}
-    - echo "AUTONOMA_CLIENT_ID first 5 chars:" ${AUTONOMA_CLIENT_ID:0:5}
-    - echo "AUTONOMA_CLIENT_SECRET first 5 chars:" ${AUTONOMA_CLIENT_SECRET:0:5}
-    - env | grep AUTONOMA || echo "No AUTONOMA vars found"
-    - echo "=== Running Script ==="
     - |
       /autonoma/wrapper-run-test.sh \
         "$ITEM_ID" \
