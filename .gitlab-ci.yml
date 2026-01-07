@@ -7,19 +7,12 @@ stages:
   variables:
     ITEM_ID: "cmbsjlcec00j806010iaw716y"
     ITEM_TYPE: "folder"
-    MAX_WAIT_TIME: "10"
+    MAX_WAIT_TIME: "10" #IN MINUTES
     APP_VERSIONS: |
       - application-id: 'cma1gj6w800mexs01n1g1yjak'  # v0-mercury-bank-webapp.vercel.app
         version-id: 'cmeww6jtv001z5g01xyczbx2s'
-    BLOCKING: "false"
+    BLOCKING: "false" # Non-blocking by default
   script:
-    - echo "=== Environment Check ==="
-    - echo "AUTONOMA_CLIENT_ID length:" ${#AUTONOMA_CLIENT_ID}
-    - echo "AUTONOMA_CLIENT_SECRET length:" ${#AUTONOMA_CLIENT_SECRET}
-    - echo "AUTONOMA_CLIENT_ID first 5 chars:" ${AUTONOMA_CLIENT_ID:0:5}
-    - echo "AUTONOMA_CLIENT_SECRET first 5 chars:" ${AUTONOMA_CLIENT_SECRET:0:5}
-    - env | grep AUTONOMA || echo "No AUTONOMA vars found"
-    - echo "=== Running Script ==="
     - |
       /autonoma/wrapper-run-test.sh \
         "$ITEM_ID" \
